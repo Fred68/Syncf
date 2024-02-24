@@ -28,83 +28,88 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			button1 = new Button();
-			button2 = new Button();
-			button3 = new Button();
-			button4 = new Button();
+			components = new System.ComponentModel.Container();
+			btRead = new Button();
+			btWrite = new Button();
+			btReadWrite = new Button();
+			btExit = new Button();
 			groupBox1 = new GroupBox();
-			button5 = new Button();
+			btStop = new Button();
 			tbMsg = new TextBox();
 			panel1 = new Panel();
 			statusStrip1 = new StatusStrip();
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
+			refreshTimer = new System.Windows.Forms.Timer(components);
 			groupBox1.SuspendLayout();
 			panel1.SuspendLayout();
 			statusStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
-			// button1
+			// btRead
 			// 
-			button1.Location = new Point(20,30);
-			button1.Name = "button1";
-			button1.Size = new Size(110,27);
-			button1.TabIndex = 1;
-			button1.Text = "button1";
-			button1.UseVisualStyleBackColor = true;
+			btRead.Location = new Point(20,30);
+			btRead.Name = "btRead";
+			btRead.Size = new Size(110,27);
+			btRead.TabIndex = 1;
+			btRead.Text = "Leggi";
+			btRead.UseVisualStyleBackColor = true;
+			btRead.Click += btRead_Click;
 			// 
-			// button2
+			// btWrite
 			// 
-			button2.Location = new Point(20,63);
-			button2.Name = "button2";
-			button2.Size = new Size(110,27);
-			button2.TabIndex = 2;
-			button2.Text = "button2";
-			button2.UseVisualStyleBackColor = true;
+			btWrite.Location = new Point(20,63);
+			btWrite.Name = "btWrite";
+			btWrite.Size = new Size(110,27);
+			btWrite.TabIndex = 2;
+			btWrite.Text = "Scrivi";
+			btWrite.UseVisualStyleBackColor = true;
 			// 
-			// button3
+			// btReadWrite
 			// 
-			button3.Location = new Point(20,96);
-			button3.Name = "button3";
-			button3.Size = new Size(110,27);
-			button3.TabIndex = 3;
-			button3.Text = "button3";
-			button3.UseVisualStyleBackColor = true;
+			btReadWrite.Location = new Point(20,96);
+			btReadWrite.Name = "btReadWrite";
+			btReadWrite.Size = new Size(110,27);
+			btReadWrite.TabIndex = 3;
+			btReadWrite.Text = "Leggi e scrivi";
+			btReadWrite.UseVisualStyleBackColor = true;
 			// 
-			// button4
+			// btExit
 			// 
-			button4.Location = new Point(31,244);
-			button4.Name = "button4";
-			button4.Size = new Size(110,27);
-			button4.TabIndex = 4;
-			button4.Text = "Exit";
-			button4.UseVisualStyleBackColor = true;
+			btExit.Location = new Point(32,312);
+			btExit.Name = "btExit";
+			btExit.Size = new Size(110,27);
+			btExit.TabIndex = 4;
+			btExit.Text = "Esci";
+			btExit.UseVisualStyleBackColor = true;
+			btExit.Click += btExit_Click;
 			// 
 			// groupBox1
 			// 
-			groupBox1.Controls.Add(button3);
-			groupBox1.Controls.Add(button2);
-			groupBox1.Controls.Add(button1);
-			groupBox1.Location = new Point(31,22);
+			groupBox1.Controls.Add(btReadWrite);
+			groupBox1.Controls.Add(btWrite);
+			groupBox1.Controls.Add(btRead);
+			groupBox1.Location = new Point(12,12);
 			groupBox1.Name = "groupBox1";
-			groupBox1.Size = new Size(149,154);
+			groupBox1.Size = new Size(149,142);
 			groupBox1.TabIndex = 5;
 			groupBox1.TabStop = false;
 			groupBox1.Text = "Comandi";
 			// 
-			// button5
+			// btStop
 			// 
-			button5.Location = new Point(31,193);
-			button5.Name = "button5";
-			button5.Size = new Size(110,27);
-			button5.TabIndex = 6;
-			button5.Text = "Stop";
-			button5.UseVisualStyleBackColor = true;
+			btStop.Location = new Point(32,160);
+			btStop.Name = "btStop";
+			btStop.Size = new Size(110,27);
+			btStop.TabIndex = 6;
+			btStop.Text = "Stop";
+			btStop.UseVisualStyleBackColor = true;
+			btStop.Click += btStop_Click;
 			// 
 			// tbMsg
 			// 
 			tbMsg.BorderStyle = BorderStyle.FixedSingle;
 			tbMsg.Dock = DockStyle.Right;
-			tbMsg.Location = new Point(225,0);
+			tbMsg.Location = new Point(181,0);
 			tbMsg.Multiline = true;
 			tbMsg.Name = "tbMsg";
 			tbMsg.ReadOnly = true;
@@ -116,20 +121,20 @@
 			// 
 			panel1.Controls.Add(tbMsg);
 			panel1.Controls.Add(groupBox1);
-			panel1.Controls.Add(button4);
-			panel1.Controls.Add(button5);
+			panel1.Controls.Add(btExit);
+			panel1.Controls.Add(btStop);
 			panel1.Dock = DockStyle.Top;
 			panel1.Location = new Point(0,0);
 			panel1.Name = "panel1";
-			panel1.Size = new Size(556,351);
+			panel1.Size = new Size(512,351);
 			panel1.TabIndex = 7;
 			// 
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0,375);
+			statusStrip1.Location = new Point(0,372);
 			statusStrip1.Name = "statusStrip1";
-			statusStrip1.Size = new Size(556,22);
+			statusStrip1.Size = new Size(512,22);
 			statusStrip1.TabIndex = 8;
 			statusStrip1.Text = "statusStrip1";
 			// 
@@ -139,15 +144,20 @@
 			toolStripStatusLabel1.Size = new Size(118,17);
 			toolStripStatusLabel1.Text = "toolStripStatusLabel1";
 			// 
+			// refreshTimer
+			// 
+			refreshTimer.Tick += refreshTimer_Tick;
+			// 
 			// Form1
 			// 
 			AutoScaleDimensions = new SizeF(7F,15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(556,397);
+			ClientSize = new Size(512,394);
 			Controls.Add(statusStrip1);
 			Controls.Add(panel1);
 			Name = "Form1";
 			Text = "Form1";
+			FormClosing += Form1_FormClosing;
 			groupBox1.ResumeLayout(false);
 			panel1.ResumeLayout(false);
 			panel1.PerformLayout();
@@ -158,15 +168,16 @@
 		}
 
 		#endregion
-		private Button button1;
-		private Button button2;
-		private Button button3;
-		private Button button4;
+		private Button btRead;
+		private Button btWrite;
+		private Button btReadWrite;
+		private Button btExit;
 		private GroupBox groupBox1;
-		private Button button5;
+		private Button btStop;
 		private TextBox tbMsg;
 		private Panel panel1;
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel toolStripStatusLabel1;
+		private System.Windows.Forms.Timer refreshTimer;
 	}
 	}
