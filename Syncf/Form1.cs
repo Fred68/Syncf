@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.DirectoryServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using Fred68.CfgReader;
@@ -17,10 +19,14 @@ namespace Syncf
 		CancellationToken token = CancellationToken.None;
 		Control? taskCtrl = null;
 		bool running = false;
+		bool closeRequest = false;
 
 		char[] ch = { '|','/','-','\\' };
 		int ich = 0;
 
+		/// <summary>
+		/// Ctor
+		/// </summary>
 		public Form1()
 		{
 			InitializeComponent();
@@ -112,7 +118,7 @@ namespace Syncf
 			btStop.Enabled = true;
 			EnableTaskCtrl(false);
 			Task<bool> task = Task<bool>.Factory.StartNew(() => Esegui(f,token,cts),token);
-			task.ContinueWith(ShowResult);
+			task.ContinueWith(AfterTask);
 		}
 
 		void EnableTaskCtrl(bool enabled)
@@ -123,7 +129,7 @@ namespace Syncf
 			}
 		}
 
-		void ShowResult(Task<bool> t)
+		void AfterTask(Task<bool> t)
 		{
 			bool s = t.Result;
 			btStop.BeginInvoke(new Action(() => btStop.Enabled = false));
@@ -141,7 +147,24 @@ namespace Syncf
 
 			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
 			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
+
+			if(closeRequest)
+			{
+				this.BeginInvoke(new Action(() => Close()));
+			}
 		}
+
+		void StopTask()
+		{
+			if(!token.IsCancellationRequested)
+			{
+				if(cts != null)
+				{
+					cts.Cancel();
+				}
+			}
+		}
+
 
 		public char GetRotChar()
 		{
@@ -159,32 +182,33 @@ namespace Syncf
 
 		private void btStop_Click(object sender,EventArgs e)
 		{
-			if(!token.IsCancellationRequested)
-			{
-				if(cts != null)
-				{
-					cts.Cancel();
-				}
-			}
+			StopTask();
 		}
 
 		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
 		{
 			if(!running)
 			{
-				if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
+				if(!closeRequest)
 				{
-					e.Cancel = true;
+					if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
+					{
+						e.Cancel = true;
+					}
 				}
 			}
 			else
 			{
-				MessageBox.Show("Operazione in corso...");
-				e.Cancel = true;
+				AddMessage("\r\nArresto operazione in corso...\r\n");
+				e.Cancel = true;			// Annulla chiusura
+				closeRequest = true;		// Richiede chiusura al termine del task
+				StopTask();					// Richiede arresto del task
 			}
-			if(!e.Cancel)
+
+			if(!e.Cancel)		// Chiusura confermata
 			{
 				refreshTimer.Stop();
+				sf.ReleaseBusy();
 			}
 		}
 

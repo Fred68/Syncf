@@ -1,6 +1,7 @@
 ﻿using Fred68.CfgReader;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Policy;
 using System.Text;
@@ -19,6 +20,8 @@ namespace Syncf
 		string userName = string.Empty;
 		bool enabled;
 		FuncMsg fmsg;
+		string busyFile = string.Empty;
+
 
 		#region Proprieta'
 		
@@ -59,7 +62,6 @@ namespace Syncf
 		}
 		#endregion
 
-
 		/// <summary>
 		/// Ctor
 		/// </summary>
@@ -92,7 +94,7 @@ namespace Syncf
 			// Controlla esistenza delle opzioni necessarie
 			try
 			{	
-				sTmp = cfg.busyF;
+				sTmp = cfg.extBusy;
 				sTmp = cfg.logF;
 				sTmp = cfg.todoF;
 				sTmp = cfg.doneF;
@@ -111,6 +113,89 @@ namespace Syncf
 				ok = false;
 				MessageBox.Show($"Errore nella configurazione\r\n{ex.Message.ToString()}");
 			}
+
+			#if DEBUG
+			Process.Start("explorer.exe" , cfg.logPath);
+			#endif
+
+			// Controlla esistenza della cartella di log
+			if(ok)
+			{
+				if(!CheckLogDir())
+				{
+					ok = false;
+					MessageBox.Show($"La directory di log {cfg.logPath} non esiste.\r\n");
+				}
+			}
+
+			// Controlla che non ci siano file 'busy' nella cartella di log
+			if(ok)
+			{
+				string pattern = "";
+				try
+				{
+					pattern = $"*.{cfg.extBusy}";
+					string[] fs = Directory.GetFiles(cfg.logPath,pattern);
+					if(fs.Length > 0)
+					{
+						ok = false;
+						MessageBox.Show($"Sono presenti dei file '{pattern}' nella cartella '{cfg.logPath}'\r\nIl programma è probabilmente utilizzato da altri utenti\r\n");
+					}
+				}
+				catch(Exception ex)
+				{
+					ok = false;
+					MessageBox.Show($"Errore nella ricerca dei file '{pattern}' nella cartella '{cfg.logPath}'\r\n{ex.Message.ToString()}");
+				}
+
+			}
+
+			// Crea il file busy
+			if(ok)
+			{
+				ok = LockBusy();
+			}
+
+			return ok;
+		}
+
+		bool LockBusy()
+		{
+			bool ok = false;
+			busyFile = cfg.logPath + userName + '.' + cfg.extBusy;
+			try
+			{
+				StreamWriter sw = File.CreateText(busyFile);
+				sw.Close();
+				ok = true;
+			}
+			catch (Exception ex)
+			{
+				ok = false;
+				MessageBox.Show($"Errore nella creazione del file '{busyFile}' nella cartella '{cfg.logPath}'\r\n{ex.Message.ToString()}");	
+			}
+			return ok;
+		}
+
+		public void ReleaseBusy()
+		{
+			if(busyFile != string.Empty)
+			{
+				try
+				{
+					File.Delete(busyFile);
+				}
+				catch(Exception e)
+				{
+					MessageBox.Show($"Errore nella cancellazione del file '{busyFile}'\r\n{e.Message.ToString()}");
+				}
+			}
+		}
+
+		bool CheckLogDir()
+		{
+			bool ok = false;
+			ok = Directory.Exists(cfg.logPath);
 			return ok;
 		}
 
