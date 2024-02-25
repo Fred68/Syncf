@@ -9,6 +9,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace Syncf
 {
+	
 	public class SyncFile
 	{
 		public delegate void FuncMsg(string msg);
@@ -19,6 +20,8 @@ namespace Syncf
 		bool enabled;
 		FuncMsg fmsg;
 
+		#region Proprieta'
+		
 		public bool isEnabled
 		{
 			get { return enabled; }
@@ -28,6 +31,34 @@ namespace Syncf
 		{
 			get {return fmsg;}
 		}
+		
+		public FuncBkgnd? StartFunc()
+		{
+			FuncBkgnd? f = null;
+			switch(cfg.command)
+			{
+				case 0:
+					break;
+				case 1:
+					fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n");
+					f = ReadFile;
+					break;
+				case 2:
+					fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n");
+					f = WriteFile;
+					break;
+				case 3:
+					fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n");
+					f = ReadWriteFile;
+					break;
+				default:
+					break;
+
+			}
+			return f;
+		}
+		#endregion
+
 
 		/// <summary>
 		/// Ctor
@@ -54,22 +85,24 @@ namespace Syncf
 		public bool CheckCfg()
 		{
 			bool ok = true;
-			string tmp;
-			List<string> lstmp;
+			string sTmp;
+			List<string> lsTmp;
+			int iTmp;
 
 			// Controlla esistenza delle opzioni necessarie
 			try
 			{	
-				tmp = cfg.busyF;
-				tmp = cfg.busyF;
-				tmp = cfg.logF;
-				tmp = cfg.todoF;
-				tmp = cfg.doneF;
-				tmp = cfg.indxF;
-				tmp = cfg.origRoot;
-				tmp = cfg.destRoot;
-				lstmp = cfg.ext;
-				tmp = cfg.logPath;
+				sTmp = cfg.busyF;
+				sTmp = cfg.logF;
+				sTmp = cfg.todoF;
+				sTmp = cfg.doneF;
+				sTmp = cfg.indxF;
+				iTmp = cfg.command;
+				sTmp = cfg.origRoot;
+				sTmp = cfg.destRoot;
+				lsTmp = cfg.extYes;
+				lsTmp = cfg.extNo;
+				sTmp = cfg.logPath;
 				if(userName.Length < 1)	throw new Exception("Utente non definito");
 					
 			}

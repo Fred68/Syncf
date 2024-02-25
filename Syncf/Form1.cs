@@ -7,15 +7,15 @@ using static Fred68.CfgReader.CfgReader;
 
 namespace Syncf
 {
+	public delegate bool FuncBkgnd(CancellationToken tk);
+
 	public partial class Form1:Form
 	{
-		delegate bool FuncBkgnd(CancellationToken tk);
-
 		SyncFile sf;
 
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
-		Button? taskButton = null;
+		Control? taskCtrl = null;
 		bool running = false;
 
 		char[] ch = { '|','/','-','\\' };
@@ -25,28 +25,45 @@ namespace Syncf
 		{
 			InitializeComponent();
 			SuspendLayout();
-
-			tbMsg.AppendText("\r\nMESSAGGI:\r\n");
 			sf = new SyncFile(AddMessageAltTask);
-			string msg = sf.CfgMsgs();
-			tbMsg.AppendText(msg);
-			//MessageBox.Show(msg);
-			tbMsg.SelectionLength = 0;      // Deseleziona
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			this.MinimumSize = this.Size;
 			this.Text = "Syncf";
 			btStop.Visible = true;
 			btStop.Enabled = false;
+			ResumeLayout(false);
+			PerformLayout();
+		}
 
-			refreshTimer.Interval = 200;
+		private void Form1_Load(object sender,EventArgs e)
+		{
+			SuspendLayout();
+
+			tbMsg.AppendText("\r\nMESSAGGI:\r\n");
+			string msg = sf.CfgMsgs();
+			tbMsg.AppendText(msg);			//MessageBox.Show(msg);
+			tbMsg.SelectionLength = 0;      // Deseleziona
+
+			refreshTimer.Interval = 300;
 			refreshTimer.Start();
 
 			ResumeLayout(false);
 			PerformLayout();
 
 
-			if(!sf.isEnabled)
+			if(sf.isEnabled)
+			{
+				FuncBkgnd? f = sf.StartFunc();
+				if(f!=null)
+				{
+					taskCtrl = gbComandi;
+					EseguiComando(f);
+				}
+				
+				// EseguiComando(sf.ReadWriteFile);
+			}
+			else
 			{
 				MessageBox.Show($"Errori nella configurazione.\r\nIl programma non può essere eseguito");
 				btRead.Enabled = btWrite.Enabled = btReadWrite.Enabled = btStop.Enabled = false;
@@ -66,7 +83,7 @@ namespace Syncf
 			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
 		}
 
-		bool Esegui(FuncBkgnd f,CancellationToken token,CancellationTokenSource ctsrc)
+		bool Esegui(FuncBkgnd? f,CancellationToken token,CancellationTokenSource ctsrc)
 		{
 			bool ok = false;
 
@@ -93,16 +110,16 @@ namespace Syncf
 			cts = new CancellationTokenSource();
 			token = cts.Token;
 			btStop.Enabled = true;
-			EnableTaskButton(false);
+			EnableTaskCtrl(false);
 			Task<bool> task = Task<bool>.Factory.StartNew(() => Esegui(f,token,cts),token);
-			task.ContinueWith(ShowResult);	
+			task.ContinueWith(ShowResult);
 		}
 
-		void EnableTaskButton(bool enabled)
+		void EnableTaskCtrl(bool enabled)
 		{
-			if(taskButton != null)
+			if(taskCtrl != null)
 			{
-			taskButton.Enabled = enabled;
+				taskCtrl.Enabled = enabled;
 			}
 		}
 
@@ -119,11 +136,11 @@ namespace Syncf
 			}
 			else
 			{
-				msg = "Operazione fallita o interrotta\r\n";
+				msg = "\r\nOperazione fallita o interrotta\r\n";
 			}
 
 			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
-			this.BeginInvoke(new Action(() => EnableTaskButton(true)));
+			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
 		}
 
 		public char GetRotChar()
@@ -180,7 +197,8 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				taskButton = btRead;
+				//taskCtrl = btRead;
+				taskCtrl = gbComandi;
 				EseguiComando(sf.ReadFile);
 			}
 			else
@@ -192,29 +210,33 @@ namespace Syncf
 		private void btWrite_Click(object sender,EventArgs e)
 		{
 			if(!running)
-				{
-					taskButton = btWrite;
-					EseguiComando(sf.WriteFile);
-				}
-				else
-				{
-					MessageBox.Show("Operazione in corso");
-				}
+			{
+				//taskCtrl = btWrite;
+				taskCtrl = gbComandi;
+				EseguiComando(sf.WriteFile);
+			}
+			else
+			{
+				MessageBox.Show("Operazione in corso");
+			}
 		}
 
 		private void btReadWrite_Click(object sender,EventArgs e)
 		{
 			if(!running)
-				{
-					taskButton = btReadWrite;
-					EseguiComando(sf.ReadWriteFile);
-				}
-				else
-				{
-					MessageBox.Show("Operazione in corso");
-				}
+			{
+				//taskCtrl = btReadWrite;
+				taskCtrl = gbComandi;
+				EseguiComando(sf.ReadWriteFile);
+			}
+			else
+			{
+				MessageBox.Show("Operazione in corso");
+			}
 		}
 
 		#endregion
+
+		
 	}
 }

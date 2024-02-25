@@ -33,14 +33,14 @@
 			btWrite = new Button();
 			btReadWrite = new Button();
 			btExit = new Button();
-			groupBox1 = new GroupBox();
+			gbComandi = new GroupBox();
 			btStop = new Button();
 			tbMsg = new TextBox();
 			panel1 = new Panel();
 			statusStrip1 = new StatusStrip();
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
 			refreshTimer = new System.Windows.Forms.Timer(components);
-			groupBox1.SuspendLayout();
+			gbComandi.SuspendLayout();
 			panel1.SuspendLayout();
 			statusStrip1.SuspendLayout();
 			SuspendLayout();
@@ -85,17 +85,17 @@
 			btExit.UseVisualStyleBackColor = true;
 			btExit.Click += btExit_Click;
 			// 
-			// groupBox1
+			// gbComandi
 			// 
-			groupBox1.Controls.Add(btReadWrite);
-			groupBox1.Controls.Add(btWrite);
-			groupBox1.Controls.Add(btRead);
-			groupBox1.Location = new Point(12,12);
-			groupBox1.Name = "groupBox1";
-			groupBox1.Size = new Size(149,142);
-			groupBox1.TabIndex = 5;
-			groupBox1.TabStop = false;
-			groupBox1.Text = "Comandi";
+			gbComandi.Controls.Add(btReadWrite);
+			gbComandi.Controls.Add(btWrite);
+			gbComandi.Controls.Add(btRead);
+			gbComandi.Location = new Point(12,12);
+			gbComandi.Name = "gbComandi";
+			gbComandi.Size = new Size(149,142);
+			gbComandi.TabIndex = 5;
+			gbComandi.TabStop = false;
+			gbComandi.Text = "Comandi";
 			// 
 			// btStop
 			// 
@@ -122,7 +122,7 @@
 			// panel1
 			// 
 			panel1.Controls.Add(tbMsg);
-			panel1.Controls.Add(groupBox1);
+			panel1.Controls.Add(gbComandi);
 			panel1.Controls.Add(btExit);
 			panel1.Controls.Add(btStop);
 			panel1.Dock = DockStyle.Top;
@@ -160,7 +160,8 @@
 			Name = "Form1";
 			Text = "Form1";
 			FormClosing += Form1_FormClosing;
-			groupBox1.ResumeLayout(false);
+			Load += Form1_Load;
+			gbComandi.ResumeLayout(false);
 			panel1.ResumeLayout(false);
 			panel1.PerformLayout();
 			statusStrip1.ResumeLayout(false);
@@ -174,7 +175,7 @@
 		private Button btWrite;
 		private Button btReadWrite;
 		private Button btExit;
-		private GroupBox groupBox1;
+		private GroupBox gbComandi;
 		private Button btStop;
 		private TextBox tbMsg;
 		private Panel panel1;
