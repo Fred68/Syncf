@@ -11,23 +11,32 @@ namespace Syncf
 {
 	public class SyncFile
 	{
+		public delegate void FuncMsg(string msg);
 
 		string cfgName = "Syncf.cfg";
 		dynamic cfg;
 		string userName = string.Empty;
 		bool enabled;
-		
+		FuncMsg fmsg;
+
 		public bool isEnabled
 		{
 			get { return enabled; }
 		}
 
+		public FuncMsg Fmsg
+		{
+			get {return fmsg;}
+		}
+
 		/// <summary>
 		/// Ctor
 		/// </summary>
-		public SyncFile()
+		public SyncFile(FuncMsg f)
 		{
 			cfg = new CfgReader();
+			fmsg = f;
+			//MessageBox.Show(cfg.CHR_Ammessi);
 			cfg.ReadConfiguration(cfgName);
 			userName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name
 			enabled = CheckCfg();
@@ -84,13 +93,54 @@ namespace Syncf
 					}
 					else
 					{
+						fmsg('R'+i.ToString());
 						Thread.Sleep(500);
 						if(i == 9)
 							{
+							fmsg("\r\n");
 							ok = true;
 							}
 					}
 				}
+			return ok;
+		}
+
+		public bool WriteFile(CancellationToken token)
+		{
+			bool ok = false;
+			for(int i = 0;i < 10;i++)       // Esegue le operazioni
+			{
+				if(token.IsCancellationRequested)
+				{
+					ok = false;
+					break;          // Esce dal ciclo for
+				}
+				else
+				{
+					fmsg('W'+i.ToString());
+					Thread.Sleep(500);
+					if(i == 9)
+					{
+						fmsg("\r\n");
+						ok = true;
+					}
+				}
+			}
+			return ok;
+		}
+
+		public bool ReadWriteFile(CancellationToken token)
+		{
+			bool ok, rok, wok;
+			ok = rok = wok = false;
+			rok = ReadFile(token);
+
+			if(rok)
+			{
+				wok = WriteFile(token);
+			}
+			ok = rok && wok;
+
 			return ok;
 		}
 	}

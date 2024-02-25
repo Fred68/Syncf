@@ -50,7 +50,7 @@ namespace Fred68.CfgReader
 		/// Caratteri ammessi (Regex)
 		/// Lettere e numeri, interpunzioni, parentesi, oltre ai caratteri speciali
 		/// </summary>
-		public string CHR_Ammessi {get; } = "[^-A-Za-z0-9 .,:;/?!#%=$\"\\[\\]]";	
+		public string CHR_Ammessi {get; } = "[^-A-Za-z0-9 .,:;_/?!#%=$\"\\[]]";	
 		/// <summary>
 		/// Inizio nome identificativo di sezione
 		/// </summary>

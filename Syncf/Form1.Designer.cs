@@ -63,6 +63,7 @@
 			btWrite.TabIndex = 2;
 			btWrite.Text = "Scrivi";
 			btWrite.UseVisualStyleBackColor = true;
+			btWrite.Click += btWrite_Click;
 			// 
 			// btReadWrite
 			// 
@@ -72,6 +73,7 @@
 			btReadWrite.TabIndex = 3;
 			btReadWrite.Text = "Leggi e scrivi";
 			btReadWrite.UseVisualStyleBackColor = true;
+			btReadWrite.Click += btReadWrite_Click;
 			// 
 			// btExit
 			// 

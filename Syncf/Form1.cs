@@ -15,7 +15,7 @@ namespace Syncf
 
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
-
+		Button? taskButton = null;
 		bool running = false;
 
 		char[] ch = { '|','/','-','\\' };
@@ -26,9 +26,11 @@ namespace Syncf
 			InitializeComponent();
 			SuspendLayout();
 
-			tbMsg.AppendText("MESSAGGI:\r\n\r\n");
-			sf = new SyncFile();
-			tbMsg.AppendText(sf.CfgMsgs());
+			tbMsg.AppendText("\r\nMESSAGGI:\r\n");
+			sf = new SyncFile(AddMessageAltTask);
+			string msg = sf.CfgMsgs();
+			tbMsg.AppendText(msg);
+			//MessageBox.Show(msg);
 			tbMsg.SelectionLength = 0;      // Deseleziona
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
@@ -51,14 +53,17 @@ namespace Syncf
 				refreshTimer.Stop();
 			}
 
-
-
 		}
 
 		private void AddMessage(string msg)
 		{
 			tbMsg.AppendText(msg);
 			tbMsg.Invalidate();
+		}
+
+		public void AddMessageAltTask(string msg)
+		{
+			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
 		}
 
 		bool Esegui(FuncBkgnd f,CancellationToken token,CancellationTokenSource ctsrc)
@@ -83,44 +88,21 @@ namespace Syncf
 			return ok;
 		}
 
-		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
+		void EseguiComando(FuncBkgnd f)
 		{
-			if(!running)
-			{
-				if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
-				{
-					e.Cancel = true;
-				}
-			}
-			else
-			{
-				MessageBox.Show("Operazione in corso...");
-				e.Cancel = true;
-			}
-		if(!e.Cancel)
-			{
-			refreshTimer.Stop();
-			}
+			cts = new CancellationTokenSource();
+			token = cts.Token;
+			btStop.Enabled = true;
+			EnableTaskButton(false);
+			Task<bool> task = Task<bool>.Factory.StartNew(() => Esegui(f,token,cts),token);
+			task.ContinueWith(ShowResult);	
 		}
 
-		private void btExit_Click(object sender,EventArgs e)
+		void EnableTaskButton(bool enabled)
 		{
-			Close();
-		}
-
-		private void btRead_Click(object sender,EventArgs e)
-		{
-			if(!running)
+			if(taskButton != null)
 			{
-				cts = new CancellationTokenSource();
-				token = cts.Token;
-				btStop.Enabled = true;
-				Task<bool> task = Task<bool>.Factory.StartNew(() => Esegui(sf.ReadFile,token,cts),token);
-				task.ContinueWith(ShowResult);
-			}
-			else
-			{
-				MessageBox.Show("Operazione in corso");
+			taskButton.Enabled = enabled;
 			}
 		}
 
@@ -141,6 +123,21 @@ namespace Syncf
 			}
 
 			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
+			this.BeginInvoke(new Action(() => EnableTaskButton(true)));
+		}
+
+		public char GetRotChar()
+		{
+			ich++;
+			if(ich >= ch.Length) ich = 0;
+			return ch[ich];
+		}
+
+		#region HANDLERS
+
+		private void refreshTimer_Tick(object sender,EventArgs e)
+		{
+			toolStripStatusLabel1.Text = GetRotChar().ToString();
 		}
 
 		private void btStop_Click(object sender,EventArgs e)
@@ -154,16 +151,70 @@ namespace Syncf
 			}
 		}
 
-		public char GetRotChar()
-			{
-			ich++;
-			if(ich>=ch.Length) ich=0;
-			return ch[ich];
-			}
-
-		private void refreshTimer_Tick(object sender,EventArgs e)
+		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
 		{
-			toolStripStatusLabel1.Text = GetRotChar().ToString();
+			if(!running)
+			{
+				if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
+				{
+					e.Cancel = true;
+				}
+			}
+			else
+			{
+				MessageBox.Show("Operazione in corso...");
+				e.Cancel = true;
+			}
+			if(!e.Cancel)
+			{
+				refreshTimer.Stop();
+			}
 		}
+
+		private void btExit_Click(object sender,EventArgs e)
+		{
+			Close();
+		}
+
+		private void btRead_Click(object sender,EventArgs e)
+		{
+			if(!running)
+			{
+				taskButton = btRead;
+				EseguiComando(sf.ReadFile);
+			}
+			else
+			{
+				MessageBox.Show("Operazione in corso");
+			}
+		}
+
+		private void btWrite_Click(object sender,EventArgs e)
+		{
+			if(!running)
+				{
+					taskButton = btWrite;
+					EseguiComando(sf.WriteFile);
+				}
+				else
+				{
+					MessageBox.Show("Operazione in corso");
+				}
+		}
+
+		private void btReadWrite_Click(object sender,EventArgs e)
+		{
+			if(!running)
+				{
+					taskButton = btReadWrite;
+					EseguiComando(sf.ReadWriteFile);
+				}
+				else
+				{
+					MessageBox.Show("Operazione in corso");
+				}
+		}
+
+		#endregion
 	}
 }
