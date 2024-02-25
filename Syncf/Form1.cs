@@ -42,6 +42,11 @@ namespace Syncf
 			PerformLayout();
 		}
 
+		/// <summary>
+		/// OnLoad...
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void Form1_Load(object sender,EventArgs e)
 		{
 			SuspendLayout();
@@ -78,17 +83,33 @@ namespace Syncf
 
 		}
 
+		/// <summary>
+		/// Aggiunge messaggio alla finestra
+		/// </summary>
+		/// <param name="msg"></param>
 		private void AddMessage(string msg)
 		{
 			tbMsg.AppendText(msg);
 			tbMsg.Invalidate();
 		}
 
+		/// <summary>
+		/// Aggiunge messaggio alla finestra...
+		/// ...chiamata da task differente dal quello principale (UI)
+		/// </summary>
+		/// <param name="msg"></param>
 		public void AddMessageAltTask(string msg)
 		{
 			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
 		}
 
+		/// <summary>
+		/// Registra e chiama la funzione per eseguire un comando
+		/// </summary>
+		/// <param name="f">Funzione di background</param>
+		/// <param name="token"></param>
+		/// <param name="ctsrc"></param>
+		/// <returns></returns>
 		bool Esegui(FuncBkgnd? f,CancellationToken token,CancellationTokenSource ctsrc)
 		{
 			bool ok = false;
@@ -104,13 +125,19 @@ namespace Syncf
 				);
 
 				running = true;
-				ok = f(token);                      // Esegue le operazioni
-
+				if(f!=null)
+				{
+					ok = f(token);		// Esegue le operazioni
+				}
 			}
 
 			return ok;
 		}
 
+		/// <summary>
+		/// Apre un task per eseguire una funzione
+		/// </summary>
+		/// <param name="f">funzione da eseguire</param>
 		void EseguiComando(FuncBkgnd f)
 		{
 			cts = new CancellationTokenSource();
@@ -121,6 +148,10 @@ namespace Syncf
 			task.ContinueWith(AfterTask);
 		}
 
+		/// <summary>
+		/// Abilita o disabilita un controllo sul Form
+		/// </summary>
+		/// <param name="enabled"></param>
 		void EnableTaskCtrl(bool enabled)
 		{
 			if(taskCtrl != null)
@@ -129,6 +160,10 @@ namespace Syncf
 			}
 		}
 
+		/// <summary>
+		/// Operazioni eseguite al termien del task
+		/// </summary>
+		/// <param name="t"></param>
 		void AfterTask(Task<bool> t)
 		{
 			bool s = t.Result;
@@ -150,10 +185,15 @@ namespace Syncf
 
 			if(closeRequest)
 			{
+				tbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...")));
+				Thread.Sleep(2000);
 				this.BeginInvoke(new Action(() => Close()));
 			}
 		}
 
+		/// <summary>
+		/// Richiede l'arresto del tak
+		/// </summary>
 		void StopTask()
 		{
 			if(!token.IsCancellationRequested)
@@ -165,7 +205,10 @@ namespace Syncf
 			}
 		}
 
-
+		/// <summary>
+		/// Carattere per animazione
+		/// </summary>
+		/// <returns></returns>
 		public char GetRotChar()
 		{
 			ich++;
@@ -187,28 +230,33 @@ namespace Syncf
 
 		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
 		{
-			if(!running)
-			{
-				if(!closeRequest)
+			if(!closeRequest)	// Chiede conferma, se non c'è già una richiesta di chiusura
 				{
 					if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
 					{
 						e.Cancel = true;
 					}
 				}
-			}
-			else
+
+			if(running)			// 
 			{
-				AddMessage("\r\nArresto operazione in corso...\r\n");
-				e.Cancel = true;			// Annulla chiusura
-				closeRequest = true;		// Richiede chiusura al termine del task
-				StopTask();					// Richiede arresto del task
+
 			}
 
 			if(!e.Cancel)		// Chiusura confermata
-			{
-				refreshTimer.Stop();
-				sf.ReleaseBusy();
+			{	
+				if(running)		// Se task in corso...
+				{
+					e.Cancel = true;			// Annulla chiusura
+					closeRequest = true;		// Richiede chiusura al termine del task
+					StopTask();					// Richiede arresto del task
+					AddMessage("\r\nArresto operazione in corso...\r\n");
+				}
+				else
+				{				// ...se nessun task, prosegue con la chiusura
+					refreshTimer.Stop();
+					sf.ReleaseBusy();
+				}
 			}
 		}
 
@@ -221,7 +269,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				//taskCtrl = btRead;
 				taskCtrl = gbComandi;
 				EseguiComando(sf.ReadFile);
 			}
@@ -235,7 +282,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				//taskCtrl = btWrite;
 				taskCtrl = gbComandi;
 				EseguiComando(sf.WriteFile);
 			}
@@ -249,7 +295,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				//taskCtrl = btReadWrite;
 				taskCtrl = gbComandi;
 				EseguiComando(sf.ReadWriteFile);
 			}

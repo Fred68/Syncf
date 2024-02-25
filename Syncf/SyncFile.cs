@@ -22,7 +22,6 @@ namespace Syncf
 		FuncMsg fmsg;
 		string busyFile = string.Empty;
 
-
 		#region Proprieta'
 		
 		public bool isEnabled
@@ -75,6 +74,10 @@ namespace Syncf
 			enabled = CheckCfg();
 		}
 		
+		/// <summary>
+		/// Riepilogo configurazione
+		/// </summary>
+		/// <returns></returns>
 		public string CfgMsgs()
 		{
 			StringBuilder sb = new StringBuilder();
@@ -84,6 +87,10 @@ namespace Syncf
 			return sb.ToString();
 		}
 
+		/// <summary>
+		/// Verifica la configurazione e crea il lock
+		/// </summary>
+		/// <returns></returns>
 		public bool CheckCfg()
 		{
 			bool ok = true;
@@ -159,6 +166,10 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Crea il file di lock
+		/// </summary>
+		/// <returns></returns>
 		bool LockBusy()
 		{
 			bool ok = false;
@@ -177,6 +188,9 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Cancella il file di lock
+		/// </summary>
 		public void ReleaseBusy()
 		{
 			if(busyFile != string.Empty)
@@ -192,6 +206,10 @@ namespace Syncf
 			}
 		}
 
+		/// <summary>
+		/// Controlla se esiste la directory di log
+		/// </summary>
+		/// <returns></returns>
 		bool CheckLogDir()
 		{
 			bool ok = false;
@@ -199,6 +217,12 @@ namespace Syncf
 			return ok;
 		}
 
+		#warning DA COMPLETARE
+		/// <summary>
+		/// DA COMPLETARE
+		/// </summary>
+		/// <param name="token"></param>
+		/// <returns></returns>
 		public bool ReadFile(CancellationToken token)
 		{
 			bool ok = false;
@@ -223,6 +247,12 @@ namespace Syncf
 			return ok;
 		}
 
+		#warning DA COMPLETARE
+		/// <summary>
+		/// DA COMPLETARE
+		/// </summary>
+		/// <param name="token"></param>
+		/// <returns></returns>
 		public bool WriteFile(CancellationToken token)
 		{
 			bool ok = false;
@@ -247,6 +277,12 @@ namespace Syncf
 			return ok;
 		}
 
+		#warning DA COMPLETARE
+		/// <summary>
+		/// DA COMPLETARE
+		/// </summary>
+		/// <param name="token"></param>
+		/// <returns></returns>
 		public bool ReadWriteFile(CancellationToken token)
 		{
 			bool ok, rok, wok;
