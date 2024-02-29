@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Syncf": {
+      "commandName": "Project",
+      "commandLineArgs": "-usr fred -cfg fc.cfg"
+    }
+  }
+}

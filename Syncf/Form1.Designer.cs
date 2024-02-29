@@ -34,6 +34,7 @@
 			btReadWrite = new Button();
 			btExit = new Button();
 			gbComandi = new GroupBox();
+			btClearLog = new Button();
 			btStop = new Button();
 			tbMsg = new TextBox();
 			panel1 = new Panel();
@@ -87,19 +88,30 @@
 			// 
 			// gbComandi
 			// 
+			gbComandi.Controls.Add(btClearLog);
 			gbComandi.Controls.Add(btReadWrite);
 			gbComandi.Controls.Add(btWrite);
 			gbComandi.Controls.Add(btRead);
 			gbComandi.Location = new Point(12,12);
 			gbComandi.Name = "gbComandi";
-			gbComandi.Size = new Size(149,142);
+			gbComandi.Size = new Size(149,170);
 			gbComandi.TabIndex = 5;
 			gbComandi.TabStop = false;
 			gbComandi.Text = "Comandi";
 			// 
+			// btClearLog
+			// 
+			btClearLog.Location = new Point(20,129);
+			btClearLog.Name = "btClearLog";
+			btClearLog.Size = new Size(110,27);
+			btClearLog.TabIndex = 4;
+			btClearLog.Text = "Cancella log";
+			btClearLog.UseVisualStyleBackColor = true;
+			btClearLog.Click += btClearLog_Click;
+			// 
 			// btStop
 			// 
-			btStop.Location = new Point(32,160);
+			btStop.Location = new Point(32,188);
 			btStop.Name = "btStop";
 			btStop.Size = new Size(110,27);
 			btStop.TabIndex = 6;
@@ -111,7 +123,7 @@
 			// 
 			tbMsg.BorderStyle = BorderStyle.FixedSingle;
 			tbMsg.Dock = DockStyle.Right;
-			tbMsg.Location = new Point(181,0);
+			tbMsg.Location = new Point(177,0);
 			tbMsg.Multiline = true;
 			tbMsg.Name = "tbMsg";
 			tbMsg.ReadOnly = true;
@@ -128,15 +140,15 @@
 			panel1.Dock = DockStyle.Top;
 			panel1.Location = new Point(0,0);
 			panel1.Name = "panel1";
-			panel1.Size = new Size(512,351);
+			panel1.Size = new Size(508,351);
 			panel1.TabIndex = 7;
 			// 
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0,372);
+			statusStrip1.Location = new Point(0,379);
 			statusStrip1.Name = "statusStrip1";
-			statusStrip1.Size = new Size(512,22);
+			statusStrip1.Size = new Size(508,22);
 			statusStrip1.TabIndex = 8;
 			statusStrip1.Text = "statusStrip1";
 			// 
@@ -154,11 +166,14 @@
 			// 
 			AutoScaleDimensions = new SizeF(7F,15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(512,394);
+			ClientSize = new Size(508,401);
 			Controls.Add(statusStrip1);
 			Controls.Add(panel1);
+			HelpButton = true;
+			MaximizeBox = false;
+			MinimizeBox = false;
 			Name = "Form1";
-			Text = "Form1";
+			HelpButtonClicked += Form1_HelpButtonClicked;
 			FormClosing += Form1_FormClosing;
 			Load += Form1_Load;
 			gbComandi.ResumeLayout(false);
@@ -182,5 +197,6 @@
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel toolStripStatusLabel1;
 		private System.Windows.Forms.Timer refreshTimer;
+		private Button btClearLog;
 	}
 	}

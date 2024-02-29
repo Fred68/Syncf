@@ -23,15 +23,24 @@ namespace Syncf
 
 		char[] ch = { '|','/','-','\\' };
 		int ich = 0;
+		string[] arguments;
+
+		const string CMD_USR = "-usr";
+		const string CMD_CFG = "-cfg";
+		enum CMD { USR, CFG, None };
+		string usrName, cfgFile;
 
 		/// <summary>
 		/// Ctor
 		/// </summary>
-		public Form1()
+		public Form1(string[] args)
 		{
 			InitializeComponent();
 			SuspendLayout();
-			sf = new SyncFile(AddMessageAltTask);
+			usrName = cfgFile = string.Empty;
+			arguments = args;
+			AnalyseArgs(args);
+			sf = new SyncFile(AddMessageAltTask,usrName,cfgFile);
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			this.MinimumSize = this.Size;
@@ -52,8 +61,8 @@ namespace Syncf
 			SuspendLayout();
 
 			tbMsg.AppendText("\r\nMESSAGGI:\r\n");
-			string msg = sf.CfgMsgs();
-			tbMsg.AppendText(msg);			//MessageBox.Show(msg);
+			string msg = sf.msgConfiguration;
+			tbMsg.AppendText(msg);          //MessageBox.Show(msg);
 			tbMsg.SelectionLength = 0;      // Deseleziona
 
 			refreshTimer.Interval = 300;
@@ -62,22 +71,19 @@ namespace Syncf
 			ResumeLayout(false);
 			PerformLayout();
 
-
 			if(sf.isEnabled)
 			{
-				FuncBkgnd? f = sf.StartFunc();
-				if(f!=null)
+				FuncBkgnd? f = sf.SetStartFunction();
+				if(f != null)
 				{
 					taskCtrl = gbComandi;
 					EseguiComando(f);
 				}
-				
-				// EseguiComando(sf.ReadWriteFile);
 			}
 			else
 			{
 				MessageBox.Show($"Errori nella configurazione.\r\nIl programma non può essere eseguito");
-				btRead.Enabled = btWrite.Enabled = btReadWrite.Enabled = btStop.Enabled = false;
+				btRead.Enabled = btWrite.Enabled = btReadWrite.Enabled = btStop.Enabled = btClearLog.Enabled = false;
 				refreshTimer.Stop();
 			}
 
@@ -125,9 +131,9 @@ namespace Syncf
 				);
 
 				running = true;
-				if(f!=null)
+				if(f != null)
 				{
-					ok = f(token);		// Esegue le operazioni
+					ok = f(token);      // Esegue le operazioni
 				}
 			}
 
@@ -216,6 +222,54 @@ namespace Syncf
 			return ch[ich];
 		}
 
+		bool AnalyseArgs(string[] args)
+		{
+			bool ok = true;
+			CMD cmd = CMD.None;
+			for(int i = 0;i < args.Length;i++)
+			{
+				string s = args[i];
+				switch(s)
+				{
+					case CMD_USR:
+						{
+							cmd = CMD.USR;
+						}
+						break;
+					case CMD_CFG:
+						{
+							cmd = CMD.CFG;
+						}
+						break;
+					default:
+						{
+							switch(cmd)
+							{
+								case CMD.USR:
+									{
+										usrName = s;
+									}
+									break;
+								case CMD.CFG:
+									{
+										cfgFile = s;
+									}
+									break;
+								default:
+									{
+										cmd = CMD.None;
+									}
+									break;
+							}
+						}
+						break;
+				}
+			}
+
+			return ok;
+		}
+
+
 		#region HANDLERS
 
 		private void refreshTimer_Tick(object sender,EventArgs e)
@@ -230,32 +284,27 @@ namespace Syncf
 
 		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
 		{
-			if(!closeRequest)	// Chiede conferma, se non c'è già una richiesta di chiusura
-				{
-					if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
-					{
-						e.Cancel = true;
-					}
-				}
-
-			if(running)			// 
+			if(!closeRequest)   // Chiede conferma, se non c'è già una richiesta di chiusura
 			{
-
+				if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
+				{
+					e.Cancel = true;
+				}
 			}
 
-			if(!e.Cancel)		// Chiusura confermata
-			{	
-				if(running)		// Se task in corso...
+			if(!e.Cancel)       // Se chiusura confermata...
+			{
+				if(running)     // Se task in corso...
 				{
-					e.Cancel = true;			// Annulla chiusura
-					closeRequest = true;		// Richiede chiusura al termine del task
-					StopTask();					// Richiede arresto del task
+					e.Cancel = true;            // Annulla chiusura
+					closeRequest = true;        // Richiede chiusura al termine del task
+					StopTask();                 // Richiede arresto del task
 					AddMessage("\r\nArresto operazione in corso...\r\n");
 				}
 				else
-				{				// ...se nessun task, prosegue con la chiusura
+				{               // ...se nessun task, prosegue con la chiusura
 					refreshTimer.Stop();
-					sf.ReleaseBusy();
+					sf.ReleaseFiles();
 				}
 			}
 		}
@@ -304,8 +353,22 @@ namespace Syncf
 			}
 		}
 
-		#endregion
+		private void btClearLog_Click(object sender,EventArgs e)
+		{
+			if(MessageBox.Show("Cancellare il file di log ?","Cancellazione log",MessageBoxButtons.OKCancel) == DialogResult.OK)
+			{
+				sf.ClearLog();
+			}
+		}
 
-		
+	
+
+		private void Form1_HelpButtonClicked(object sender,System.ComponentModel.CancelEventArgs e)
+		{
+			e.Cancel = true;
+			MessageBox.Show("Help");
+		}
+
+		#endregion
 	}
 }

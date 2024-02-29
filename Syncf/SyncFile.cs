@@ -1,4 +1,4 @@
-﻿using Fred68.CfgReader;
+﻿
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,6 +7,9 @@ using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
+using System.IO;
+
+using Fred68.CfgReader;
 
 namespace Syncf
 {
@@ -18,23 +21,76 @@ namespace Syncf
 		string cfgName = "Syncf.cfg";
 		dynamic cfg;
 		string userName = string.Empty;
-		bool enabled;
-		FuncMsg fmsg;
-		string busyFile = string.Empty;
+		string altUserName = string.Empty;
+		bool enabled = false;				// true se non ci sono errori di configurazione
+		FuncMsg fmsg;						// delegate per visualizzare i messaggi del task principale
+		string busyFile = string.Empty;		// File busy
+		string logFile = string.Empty;		// File di log
+		StreamWriter? swLogFile = null;		// File di log (oppure null)
 
-		#region Proprieta'
+
+		#region PROPRIETA'
 		
+		/// <summary>
+		/// Comandi abilitati, nessun errore d configurazione
+		/// </summary>
 		public bool isEnabled
 		{
 			get { return enabled; }
 		}
 
-		public FuncMsg Fmsg
+		/// <summary>
+		/// Delegate per visualizzare i messaggi del task principale
+		/// </summary>
+		public FuncMsg funcMessage
 		{
 			get {return fmsg;}
 		}
+
+		/// <summary>
+		/// Messaggio con la configurazione
+		/// </summary>
+		public string msgConfiguration
+		{
+			get
+			{
+				StringBuilder sb = new StringBuilder();
+				sb.Append($"Cfg filename = {cfgName}");
+				sb.AppendLine(cfg.ToString());
+				sb.AppendLine(cfg.DumpEntries());
+				sb.AppendLine($"User: {userName}");
+				if(altUserName.Length > 0)	sb.AppendLine($"AltUser: {altUserName}");
+				return sb.ToString();
+			}
+		}
+
+		#endregion
+
+
+		/// <summary>
+		/// Ctor
+		/// </summary>
+		public SyncFile(FuncMsg f,string usrName, string cfgFile)
+		{
+			cfg = new CfgReader();
+			fmsg = f;
+			#if DEBUG
+			//MessageBox.Show(cfg.CHR_Ammessi);
+			#endif
+			if(cfgFile.Length > 2)	cfgName = cfgFile;
+			cfg.ReadConfiguration(cfgName);
+			userName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name
+			if(usrName.Length > 1)		altUserName = usrName;
+			enabled = CheckCfg();
+			if(enabled)		enabled = LockBusy();
+			if(enabled)		enabled = OpenLog();
+			Log("Avvio programma",false);
+		}
 		
-		public FuncBkgnd? StartFunc()
+		/// <summary>
+		/// Imposta il delegate alla funzione da eseguire all'avvio
+		/// </summary>
+		public FuncBkgnd? SetStartFunction()
 		{
 			FuncBkgnd? f = null;
 			switch(cfg.command)
@@ -59,39 +115,22 @@ namespace Syncf
 			}
 			return f;
 		}
-		#endregion
 
 		/// <summary>
-		/// Ctor
+		/// Rilascia i file aperti (public, chiamata da altro task)
 		/// </summary>
-		public SyncFile(FuncMsg f)
+		public void ReleaseFiles()
 		{
-			cfg = new CfgReader();
-			fmsg = f;
-			//MessageBox.Show(cfg.CHR_Ammessi);
-			cfg.ReadConfiguration(cfgName);
-			userName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name
-			enabled = CheckCfg();
-		}
-		
-		/// <summary>
-		/// Riepilogo configurazione
-		/// </summary>
-		/// <returns></returns>
-		public string CfgMsgs()
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.AppendLine(cfg.ToString());
-			sb.AppendLine(cfg.DumpEntries());
-			sb.AppendLine($"User: {userName}");
-			return sb.ToString();
+			Log("Fine programma",false);
+			ReleaseBusy();
+			CloseLog();
 		}
 
 		/// <summary>
 		/// Verifica la configurazione e crea il lock
 		/// </summary>
 		/// <returns></returns>
-		public bool CheckCfg()
+		bool CheckCfg()
 		{
 			bool ok = true;
 			string sTmp;
@@ -157,11 +196,7 @@ namespace Syncf
 
 			}
 
-			// Crea il file busy
-			if(ok)
-			{
-				ok = LockBusy();
-			}
+			
 
 			return ok;
 		}
@@ -191,7 +226,7 @@ namespace Syncf
 		/// <summary>
 		/// Cancella il file di lock
 		/// </summary>
-		public void ReleaseBusy()
+		void ReleaseBusy()
 		{
 			if(busyFile != string.Empty)
 			{
@@ -217,6 +252,93 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Apre il file di log
+		/// </summary>
+		/// <returns></returns>
+		bool OpenLog(bool clear = false)
+		{
+			bool ok = true;
+			logFile = cfg.logPath + cfg.logF;
+			if(swLogFile == null)
+			{
+				string op = string.Empty;
+				try
+				{
+					if((!File.Exists(logFile)) || clear)
+					{
+						op = "nella creazione";
+						swLogFile = File.CreateText(logFile);
+					}
+					else
+					{
+						op = "nell'apertura";
+						swLogFile = File.AppendText(logFile);
+					}
+				}
+				catch(Exception ex)
+				{
+					ok = false;
+					swLogFile = null;
+					MessageBox.Show($"Errore {op} del file di log '{logFile}'\r\n{ex.Message.ToString()}");	
+				}
+			}
+			return ok;
+		}
+
+		/// <summary>
+		/// Chiude il file di log
+		/// </summary>
+		void CloseLog()
+		{
+			if (swLogFile != null)
+			{
+				swLogFile.Close();
+				swLogFile = null;
+			}
+		}
+
+		/// <summary>
+		/// Azzera il file di log
+		/// </summary>
+		public void ClearLog()
+		{
+			CloseLog();
+			OpenLog(true);	// Clear
+		}
+		/// <summary>
+		/// Aggiunge una linea al log
+		/// </summary>
+		/// <param name="msg"></param>
+		/// <param name="showMsg">Mostra nella finestra</param>
+		/// <returns></returns>
+		bool Log(string msg, bool showMsg = true)
+		{
+			bool ok = true;
+			if(swLogFile != null)
+			{
+				try
+				{
+					swLogFile.WriteLine($"[{DateTime.Now} {userName}] {msg}");
+				}
+				catch(Exception ex)
+				{
+					ok = false;
+					MessageBox.Show($"Errore nella scrittura del file di log '{logFile}'\r\n{ex.Message.ToString()}");	
+				}
+			}
+			else
+			{
+				ok = false;
+				MessageBox.Show($"Tentativo di scrittura su file di log non aperto");
+			}
+			if(ok && showMsg)
+			{
+				fmsg(msg);
+			}
+			return ok;
+		}
+
 		#warning DA COMPLETARE
 		/// <summary>
 		/// DA COMPLETARE
@@ -226,6 +348,31 @@ namespace Syncf
 		public bool ReadFile(CancellationToken token)
 		{
 			bool ok = false;
+
+			#warning CREARE PRIMA LE FUNZIONI DI SUPPORTO:
+			#warning Estrarre l'estensione di una stringa, il nome file ed il path.
+			#warning Confrontare una stringa (estensione) con le estensioni incluse ed escluse.
+			#warning Confrontare una stringa (path completo) con le cartelle include ed escluse (\folder\ oppure /folder/)
+			#warning Confrontare una stringa (nome con estensione, senza path) con una stringa con caratteri jolly.
+			#warning Cercare i file indice.
+
+			#warning DA FARE:
+			#warning Aprire il file di log
+			#warning Creare una lista
+			#warning Cercare i file indice.
+			#warning Se ci sono, leggere tutte le righe.
+			#warning Se non ci sono file indice, percorrere tutti i file sotto il path di origine.
+			#warning Se errore, salvarlo nel file di log.
+			#warning CREARE PRIMA LE FUNZIONI DI SUPPORTO:
+			#warning Per ogni riga, estrarre l'estensione.
+			#warning In base all'estensione, aggiungere la riga alla lista (inserendo il path)
+			#warning Verificare se il file esiste.
+			#warning Chiudere il file di log con data, ora, utente
+
+
+
+
+
 			for(int i = 0;i < 10;i++)       // Esegue le operazioni
 				{
 					if(token.IsCancellationRequested)
