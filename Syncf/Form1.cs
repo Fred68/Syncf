@@ -12,6 +12,7 @@ using static Fred68.CfgReader.CfgReader;
 namespace Syncf
 {
 	public delegate bool FuncBkgnd(CancellationToken tk);
+	public enum FLS { LST, ALL_LST, ALL, None };
 
 	public partial class Form1:Form
 	{
@@ -29,8 +30,13 @@ namespace Syncf
 
 		const string CMD_USR = "-usr";
 		const string CMD_CFG = "-cfg";
-		enum CMD { USR, CFG, None };
-		string usrName, cfgFile;
+		const string CMD_LST = "-lst";
+		const string CMD_ALL = "-all";
+
+		enum CMD { USR, CFG, LST, ALL, None };
+
+		string usrName, cfgFile, lstFileNoExt;
+		FLS fls;
 
 		/// <summary>
 		/// Ctor
@@ -39,10 +45,11 @@ namespace Syncf
 		{
 			InitializeComponent();
 			SuspendLayout();
-			usrName = cfgFile = string.Empty;
+			usrName = cfgFile = lstFileNoExt = string.Empty;
+			fls = FLS.None;
 			arguments = args;
 			AnalyseArgs(args);
-			sf = new SyncFile(AddMessageAltTask,usrName,cfgFile);
+			sf = new SyncFile(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			this.MinimumSize = this.Size;
@@ -62,7 +69,7 @@ namespace Syncf
 		{
 			SuspendLayout();
 
-			tbMsg.AppendText("\r\nMESSAGGI:\r\n");
+			tbMsg.AppendText("\r\n");
 			string msg = sf.msgConfiguration;
 			tbMsg.AppendText(msg);          //MessageBox.Show(msg);
 			tbMsg.SelectionLength = 0;      // Deseleziona
@@ -234,37 +241,65 @@ namespace Syncf
 				switch(s)
 				{
 					case CMD_USR:
-						{
-							cmd = CMD.USR;
-						}
-						break;
+					{
+						cmd = CMD.USR;
+					}
+					break;
 					case CMD_CFG:
-						{
-							cmd = CMD.CFG;
-						}
-						break;
+					{
+						cmd = CMD.CFG;
+					}
+					break;
+					case CMD_LST:
+					{
+						cmd = CMD.LST;
+					}
+					break;
+					case CMD_ALL:
+					{
+						fls = FLS.ALL;						// Legge tutti i file
+						lstFileNoExt = string.Empty;
+						cmd = CMD.None;
+					}
+					break;
 					default:
+					{
+						switch(cmd)
 						{
-							switch(cmd)
+							case CMD.USR:
 							{
-								case CMD.USR:
-									{
-										usrName = s;
-									}
-									break;
-								case CMD.CFG:
-									{
-										cfgFile = s;
-									}
-									break;
-								default:
-									{
-										cmd = CMD.None;
-									}
-									break;
+								usrName = s;
 							}
+							break;
+							case CMD.CFG:
+							{
+								cfgFile = s;
+							}
+							break;
+							case CMD.LST:
+							{
+								if(fls != FLS.ALL)				// Se non c'é l'opzione -all...
+								{
+									if(s == "*")
+									{
+										fls = FLS.ALL_LST;		// Legge tutti i file di lista
+									}
+									else
+									{
+										lstFileNoExt = s;
+										fls = FLS.LST;			// Legge solo il file di lista specificato
+									}
+								}
+							}
+							break;
+							default:
+							{
+								cmd = CMD.None;
+							}
+							break;
 						}
-						break;
+					}
+					break;
 				}
 			}
 

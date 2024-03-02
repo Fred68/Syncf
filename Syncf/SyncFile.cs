@@ -20,8 +20,8 @@ namespace Syncf
 
 		string cfgName = "Syncf.cfg";
 		dynamic cfg;
-		string userName = string.Empty;
-		string altUserName = string.Empty;
+		string userName, stdUserName, lstFileNoExt;
+		FLS fls = FLS.None;
 		bool enabled = false;				// true se non ci sono errori di configurazione
 		FuncMsg fmsg;						// delegate per visualizzare i messaggi del task principale
 		string busyFile = string.Empty;		// File busy
@@ -55,11 +55,30 @@ namespace Syncf
 			get
 			{
 				StringBuilder sb = new StringBuilder();
-				sb.Append($"Cfg filename = {cfgName}");
+				sb.AppendLine($"Cfg filename = {cfgName}");
+				sb.AppendLine($"User: {userName} [{stdUserName}]");
+				switch(fls)
+				{
+					case FLS.ALL:
+					{
+						sb.AppendLine($"Cerca tutti i file in '{cfg.origRoot}'");
+					}
+					break;
+					case FLS.ALL_LST:
+					{
+						sb.AppendLine($"Legge tutti i file indice '{cfg.indxF}' in '{cfg.logPath}'");
+					}
+					break;
+					case FLS.LST:
+					{
+						sb.AppendLine($"Legge il file indice '{lstFileNoExt}{cfg.indxF}' in '{cfg.logPath}'");
+					}
+					break;
+				}
+				
 				sb.AppendLine(cfg.ToString());
 				sb.AppendLine(cfg.DumpEntries());
-				sb.AppendLine($"User: {userName}");
-				if(altUserName.Length > 0)	sb.AppendLine($"AltUser: {altUserName}");
+				
 				return sb.ToString();
 			}
 		}
@@ -70,17 +89,38 @@ namespace Syncf
 		/// <summary>
 		/// Ctor
 		/// </summary>
-		public SyncFile(FuncMsg f,string usrName, string cfgFile)
+		public SyncFile(FuncMsg f,string usrName, string cfgFile, string lstFile, FLS flsT)
 		{
 			cfg = new CfgReader();
 			fmsg = f;
 			#if DEBUG
 			//MessageBox.Show(cfg.CHR_Ammessi);
 			#endif
+			userName = stdUserName = lstFileNoExt = string.Empty;
+
+			fls = flsT;
 			if(cfgFile.Length > 2)	cfgName = cfgFile;
 			cfg.ReadConfiguration(cfgName);
-			userName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name
-			if(usrName.Length > 1)		altUserName = usrName;
+			stdUserName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name ?
+			if(usrName.Length > 1)
+			{
+				userName = usrName;
+			}
+			else
+			{
+				userName = stdUserName;
+			}
+			
+			if(fls == FLS.LST)
+			{
+				lstFileNoExt = lstFile;
+			}
+			else if(fls == FLS.None)					// Se non è specificato alcun file di lista...
+			{
+				lstFileNoExt = userName;				// ...usa lo username
+				fls = FLS.LST;
+			}
+			
 			enabled = CheckCfg();
 			if(enabled)		enabled = LockBusy();
 			if(enabled)		enabled = OpenLog();
@@ -378,7 +418,7 @@ namespace Syncf
 			
 			name = fullpath.Substring(iPath+1,fullpath.Length-ext.Length-path.Length);
 
-			// Path.GetExtension(fullpath), Path.GetFileNameWithoutExtension(fullpath), Path.GetFullPath(fullpath) solo con percorsi Windows
+			// Path. GetExtension(), GetFileNameWithoutExtension(), GetFullPath() restituiscono solo percorsi Windows con \\
 
 			return;
 		}
@@ -406,7 +446,6 @@ namespace Syncf
 			#warning Se ci sono, leggere tutte le righe.
 			#warning Se non ci sono file indice, percorrere tutti i file sotto il path di origine.
 			#warning Se errore, salvarlo nel file di log.
-			#warning CREARE PRIMA LE FUNZIONI DI SUPPORTO:
 			#warning Per ogni riga, estrarre l'estensione.
 			#warning In base all'estensione, aggiungere la riga alla lista (inserendo il path)
 			#warning Verificare se il file esiste.
