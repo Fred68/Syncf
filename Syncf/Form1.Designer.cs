@@ -154,8 +154,9 @@
 			// 
 			// toolStripStatusLabel1
 			// 
+			toolStripStatusLabel1.Font = new Font("Courier New",9F,FontStyle.Regular,GraphicsUnit.Point,0);
 			toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-			toolStripStatusLabel1.Size = new Size(118,17);
+			toolStripStatusLabel1.Size = new Size(154,17);
 			toolStripStatusLabel1.Text = "toolStripStatusLabel1";
 			// 
 			// refreshTimer

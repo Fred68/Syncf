@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34607.119
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Syncf", "Syncf\Syncf.csproj", "{CB63B675-9185-4E6F-9B59-3F147584AF8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Syncf", "Syncf\Syncf.csproj", "{CB63B675-9185-4E6F-9B59-3F147584AF8B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementi di soluzione", "Elementi di soluzione", "{C65A7743-9898-4C99-B1B9-A5379EEB3A4E}"
+	ProjectSection(SolutionItems) = preProject
+		prebuild.bat = prebuild.bat
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.DirectoryServices;
+using System.Reflection;
+using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -269,12 +271,75 @@ namespace Syncf
 			return ok;
 		}
 
+		public static string Version()
+		{
+			StringBuilder strb = new StringBuilder();
+			strb.AppendLine("Informazioni sul programma" + System.Environment.NewLine);
+			try
+			{
+				//FileInfo fi = new FileInfo(Assembly.GetExecutingAssembly().Location);
+				strb.AppendLine("Versione: " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+				// strb.AppendLine("FullName: " + Assembly.GetEntryAssembly().GetName().FullName.ToString() + System.Environment.NewLine );
+				strb.AppendLine("Assembly name: " + Assembly.GetEntryAssembly().GetName().Name.ToString());
+				strb.AppendLine("Product name: " + Application.ProductName);
+				// strb.AppendLine("ProductVersion: " + Application.ProductVersion);
+				// strb.AppendLine("Startup path: " + Application.StartupPath);
+				strb.AppendLine("Copyright: " + Application.CompanyName);
+				strb.AppendLine("Build: " + Build());
+				strb.AppendLine("Executable path: " + Application.ExecutablePath);
+				// strb.AppendLine("Eseguibile: " + fi.FullName);
+			}
+			catch
+			{
+				MessageBox.Show("Errore in Version()");
+			}
+			return strb.ToString();
+		}
+
+		public static string Build()
+		{
+			StringBuilder strb = new StringBuilder();
+			try
+			{
+				string[] d_t;
+				string[] dd;
+				string[] hh;
+
+				d_t = (Resource.BDT).Trim().Split(' ',StringSplitOptions.RemoveEmptyEntries);
+
+				int n = d_t.Length;
+				if(n == 2)
+				{
+					dd = d_t[0].Split('/',StringSplitOptions.RemoveEmptyEntries);
+					hh = d_t[1].Split(new char[] { ':',',' },StringSplitOptions.RemoveEmptyEntries);
+					if((dd.Length == 3) && (hh.Length == 4))
+					{
+						strb.Append($"{dd[2]}.{dd[1]}.{dd[0]}.");
+						strb.Append($"{hh[0]}.{hh[1]}.{hh[2]}.{hh[3]}");
+					}
+					else
+					{
+						throw new Exception($"Numero di elementi {dd.Length} o {hh.Length} errato.");
+					}
+			}
+				else
+				{
+					throw new Exception($"Numero {n} di elementi in Resources.DT_txt {Resource.BDT} errato.");
+				}
+
+			}
+			catch(Exception ex)
+			{
+				MessageBox.Show($"Errore in Build(): {ex.Message}");
+			}
+			return strb.ToString();
+		}
 
 		#region HANDLERS
 
 		private void refreshTimer_Tick(object sender,EventArgs e)
 		{
-			toolStripStatusLabel1.Text = GetRotChar().ToString();
+			toolStripStatusLabel1.Text = GetRotChar().ToString() + (running ? " ...elaborazione..." : "");
 		}
 
 		private void btStop_Click(object sender,EventArgs e)
@@ -366,7 +431,7 @@ namespace Syncf
 		private void Form1_HelpButtonClicked(object sender,System.ComponentModel.CancelEventArgs e)
 		{
 			e.Cancel = true;
-			MessageBox.Show("Help");
+			MessageBox.Show(Version());
 		}
 
 		#endregion

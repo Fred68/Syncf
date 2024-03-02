@@ -151,8 +151,12 @@ namespace Syncf
 				lsTmp = cfg.extYes;
 				lsTmp = cfg.extNo;
 				sTmp = cfg.logPath;
+				iTmp = cfg.maxDepth;
+
 				if(userName.Length < 1)	throw new Exception("Utente non definito");
-					
+				
+				if(cfg.maxDepth < 0) throw new Exception("maxDepth deve essere nulla o maggiore di zero");
+
 			}
 			catch(Exception ex)
 			{
@@ -180,7 +184,7 @@ namespace Syncf
 				string pattern = "";
 				try
 				{
-					pattern = $"*.{cfg.extBusy}";
+					pattern = $"*{cfg.extBusy}";
 					string[] fs = Directory.GetFiles(cfg.logPath,pattern);
 					if(fs.Length > 0)
 					{
@@ -208,7 +212,7 @@ namespace Syncf
 		bool LockBusy()
 		{
 			bool ok = false;
-			busyFile = cfg.logPath + userName + '.' + cfg.extBusy;
+			busyFile = cfg.logPath + userName + cfg.extBusy;
 			try
 			{
 				StreamWriter sw = File.CreateText(busyFile);
@@ -339,6 +343,46 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Estrae percorso, nome file ed estensione
+		/// </summary>
+		/// <param name="fullpath"></param>
+		/// <param name="path"></param>
+		/// <param name="name"></param>
+		/// <param name="ext"></param>
+		/// <returns></returns>
+		void DividePath(string fullpath, ref string path, ref string name, ref string ext)
+		{
+			int iExt, iPath;
+
+			iExt = fullpath.LastIndexOf('.');											// Inizio dell'estensione
+			iPath = int.Max(fullpath.LastIndexOf('/'),fullpath.LastIndexOf('\\'));		// Inizio del nome del file
+			
+			if(iExt != -1)
+			{
+				ext = fullpath.Substring(iExt);
+			}
+			else
+			{
+				ext = string.Empty;
+			}
+			
+			if(iPath != -1)
+			{
+				path = fullpath.Substring(0, iPath+1);
+			}
+			else
+			{
+				path = string.Empty;
+			}
+			
+			name = fullpath.Substring(iPath+1,fullpath.Length-ext.Length-path.Length);
+
+			// Path.GetExtension(fullpath), Path.GetFileNameWithoutExtension(fullpath), Path.GetFullPath(fullpath) solo con percorsi Windows
+
+			return;
+		}
+
 		#warning DA COMPLETARE
 		/// <summary>
 		/// DA COMPLETARE
@@ -350,7 +394,6 @@ namespace Syncf
 			bool ok = false;
 
 			#warning CREARE PRIMA LE FUNZIONI DI SUPPORTO:
-			#warning Estrarre l'estensione di una stringa, il nome file ed il path.
 			#warning Confrontare una stringa (estensione) con le estensioni incluse ed escluse.
 			#warning Confrontare una stringa (path completo) con le cartelle include ed escluse (\folder\ oppure /folder/)
 			#warning Confrontare una stringa (nome con estensione, senza path) con una stringa con caratteri jolly.
@@ -370,7 +413,14 @@ namespace Syncf
 			#warning Chiudere il file di log con data, ora, utente
 
 
+			string path, name, ext;
+			path = name = ext = string.Empty;
 
+			DividePath(cfg.test01, ref path, ref name, ref ext);
+			DividePath(cfg.test02, ref path, ref name, ref ext);
+			DividePath(cfg.test03, ref path, ref name, ref ext);
+			DividePath(cfg.test04, ref path, ref name, ref ext);
+			DividePath(cfg.test05, ref path, ref name, ref ext);
 
 
 			for(int i = 0;i < 10;i++)       // Esegue le operazioni
