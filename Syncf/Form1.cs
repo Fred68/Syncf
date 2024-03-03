@@ -12,11 +12,11 @@ using static Fred68.CfgReader.CfgReader;
 namespace Syncf
 {
 	public delegate bool FuncBkgnd(CancellationToken tk);
-	public enum FLS { LST, ALL_LST, ALL, None };
 
 	public partial class Form1:Form
 	{
 		SyncFile sf;
+		SyncfParams par; 
 
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
@@ -32,11 +32,12 @@ namespace Syncf
 		const string CMD_CFG = "-cfg";
 		const string CMD_LST = "-lst";
 		const string CMD_ALL = "-all";
+		const string CMD_NFL = "-lstnofilter";
 
 		enum CMD { USR, CFG, LST, ALL, None };
 
-		string usrName, cfgFile, lstFileNoExt;
-		FLS fls;
+		//string usrName, cfgFile, lstFileNoExt;
+		//FLS fls;
 
 		/// <summary>
 		/// Ctor
@@ -45,11 +46,18 @@ namespace Syncf
 		{
 			InitializeComponent();
 			SuspendLayout();
-			usrName = cfgFile = lstFileNoExt = string.Empty;
-			fls = FLS.None;
+			par = new SyncfParams();
+
+			//usrName = cfgFile = lstFileNoExt = string.Empty;
+			//fls = FLS.None;
+
 			arguments = args;
 			AnalyseArgs(args);
-			sf = new SyncFile(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
+			par.fmsg = AddMessageAltTask;
+
+			//par = new SyncfParams(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
+			//sf = new SyncFile(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
+			sf = new SyncFile(par);
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			this.MinimumSize = this.Size;
@@ -257,8 +265,14 @@ namespace Syncf
 					break;
 					case CMD_ALL:
 					{
-						fls = FLS.ALL;						// Legge tutti i file
-						lstFileNoExt = string.Empty;
+						par.fls = FLS.ALL;						// Legge tutti i file
+						par.lstFile = string.Empty;
+						cmd = CMD.None;
+					}
+					break;
+					case CMD_NFL:
+					{
+						par.noFilterLst = true;
 						cmd = CMD.None;
 					}
 					break;
@@ -268,26 +282,26 @@ namespace Syncf
 						{
 							case CMD.USR:
 							{
-								usrName = s;
+								par.usrName = s;
 							}
 							break;
 							case CMD.CFG:
 							{
-								cfgFile = s;
+								par.cfgFile = s;
 							}
 							break;
 							case CMD.LST:
 							{
-								if(fls != FLS.ALL)				// Se non c'é l'opzione -all...
+								if(par.fls != FLS.ALL)				// Se non c'é l'opzione -all...
 								{
 									if(s == "*")
 									{
-										fls = FLS.ALL_LST;		// Legge tutti i file di lista
+										par.fls = FLS.ALL_LST;		// Legge tutti i file di lista
 									}
 									else
 									{
-										lstFileNoExt = s;
-										fls = FLS.LST;			// Legge solo il file di lista specificato
+										par.lstFile = s;
+										par.fls = FLS.LST;			// Legge solo il file di lista specificato
 									}
 								}
 							}

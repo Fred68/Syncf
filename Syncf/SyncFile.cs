@@ -13,21 +13,19 @@ using Fred68.CfgReader;
 
 namespace Syncf
 {
-	
+
 	public class SyncFile
 	{
 		public delegate void FuncMsg(string msg);
+		public static string STD_CFG = "Syncf.cfg";
 
-		string cfgName = "Syncf.cfg";
+		SyncfParams par;
 		dynamic cfg;
-		string userName, stdUserName, lstFileNoExt;
-		FLS fls = FLS.None;
+		string stdUserName;
 		bool enabled = false;				// true se non ci sono errori di configurazione
-		FuncMsg fmsg;						// delegate per visualizzare i messaggi del task principale
 		string busyFile = string.Empty;		// File busy
 		string logFile = string.Empty;		// File di log
-		StreamWriter? swLogFile = null;		// File di log (oppure null)
-
+		StreamWriter? swLogFile = null;		// Streamwriter (oppure null)
 
 		#region PROPRIETA'
 		
@@ -42,9 +40,9 @@ namespace Syncf
 		/// <summary>
 		/// Delegate per visualizzare i messaggi del task principale
 		/// </summary>
-		public FuncMsg funcMessage
+		public FuncMsg? funcMessage
 		{
-			get {return fmsg;}
+			get {return par.fmsg;}
 		}
 
 		/// <summary>
@@ -55,9 +53,9 @@ namespace Syncf
 			get
 			{
 				StringBuilder sb = new StringBuilder();
-				sb.AppendLine($"Cfg filename = {cfgName}");
-				sb.AppendLine($"User: {userName} [{stdUserName}]");
-				switch(fls)
+				sb.AppendLine($"Cfg filename = {par.cfgFile}");
+				sb.AppendLine($"User: {par.usrName} [{stdUserName}]");
+				switch(par.fls)
 				{
 					case FLS.ALL:
 					{
@@ -71,7 +69,7 @@ namespace Syncf
 					break;
 					case FLS.LST:
 					{
-						sb.AppendLine($"Legge il file indice '{lstFileNoExt}{cfg.indxF}' in '{cfg.logPath}'");
+						sb.AppendLine($"Legge il file indice '{par.lstFile}{cfg.indxF}' in '{cfg.logPath}'");
 					}
 					break;
 				}
@@ -89,41 +87,51 @@ namespace Syncf
 		/// <summary>
 		/// Ctor
 		/// </summary>
-		public SyncFile(FuncMsg f,string usrName, string cfgFile, string lstFile, FLS flsT)
+		
+		public SyncFile(SyncfParams p)
 		{
 			cfg = new CfgReader();
-			fmsg = f;
+			par = new SyncfParams();
+
+			par.cfgFile = STD_CFG;
+			par.fmsg = p.fmsg;
 			#if DEBUG
 			//MessageBox.Show(cfg.CHR_Ammessi);
 			#endif
-			userName = stdUserName = lstFileNoExt = string.Empty;
+			par.usrName = stdUserName = par.lstFile = string.Empty;
 
-			fls = flsT;
-			if(cfgFile.Length > 2)	cfgName = cfgFile;
-			cfg.ReadConfiguration(cfgName);
+			par.fls = p.fls;
+			if(p.cfgFile.Length > 2)	par.cfgFile = p.cfgFile;
+			cfg.ReadConfiguration(par.cfgFile);
 			stdUserName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name ?
-			if(usrName.Length > 1)
+			if(p.usrName.Length > 1)
 			{
-				userName = usrName;
+				par.usrName = p.usrName;
 			}
 			else
 			{
-				userName = stdUserName;
+				par.usrName = stdUserName;
 			}
 			
-			if(fls == FLS.LST)
+			if(par.fls == FLS.LST)
 			{
-				lstFileNoExt = lstFile;
+				par.lstFile = p.lstFile;
 			}
-			else if(fls == FLS.None)					// Se non è specificato alcun file di lista...
+			else if(par.fls == FLS.None)					// Se non è specificato alcun file di lista...
 			{
-				lstFileNoExt = userName;				// ...usa lo username
-				fls = FLS.LST;
+				par.lstFile = par.usrName;				// ...usa lo username
+				par.fls = FLS.LST;
 			}
 			
 			enabled = CheckCfg();
+
 			if(enabled)		enabled = LockBusy();
 			if(enabled)		enabled = OpenLog();
+
+			if(enabled)
+			{
+				enabled = CheckFolders();
+			}
 			Log("Avvio programma",false);
 		}
 		
@@ -138,15 +146,15 @@ namespace Syncf
 				case 0:
 					break;
 				case 1:
-					fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n");
 					f = ReadFile;
 					break;
 				case 2:
-					fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n");
 					f = WriteFile;
 					break;
 				case 3:
-					fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n");
 					f = ReadWriteFile;
 					break;
 				default:
@@ -193,9 +201,11 @@ namespace Syncf
 				sTmp = cfg.logPath;
 				iTmp = cfg.maxDepth;
 
-				if(userName.Length < 1)	throw new Exception("Utente non definito");
+				if(par.usrName.Length < 1)	throw new Exception("Utente non definito");
 				
 				if(cfg.maxDepth < 0) throw new Exception("maxDepth deve essere nulla o maggiore di zero");
+
+				if(par.fmsg == null) throw new Exception("Puntatatore a funzione fMsg nullo");
 
 			}
 			catch(Exception ex)
@@ -211,7 +221,7 @@ namespace Syncf
 			// Controlla esistenza della cartella di log
 			if(ok)
 			{
-				if(!CheckLogDir())
+				if(!CheckDir(cfg.logPath, false))
 				{
 					ok = false;
 					MessageBox.Show($"La directory di log {cfg.logPath} non esiste.\r\n");
@@ -240,11 +250,28 @@ namespace Syncf
 
 			}
 
-			
-
 			return ok;
 		}
 
+		bool CheckFolders()
+		{
+			bool ok = true;
+			
+			// Controlla la cartella di origine
+			if(!CheckDir(cfg.origRoot, false))
+			{
+				ok = false;
+				MessageBox.Show($"La directory radice di origine {cfg.origRoot} non esiste.");
+			}
+
+			// Controlla la cartella di destinazione
+			if(!CheckDir(cfg.destRoot, true))
+			{
+				ok = false;
+				MessageBox.Show($"La directory radice di destinazione {cfg.destRoot} non è accessibile in scrittura.");
+			}
+			return ok;
+		}
 		/// <summary>
 		/// Crea il file di lock
 		/// </summary>
@@ -252,7 +279,7 @@ namespace Syncf
 		bool LockBusy()
 		{
 			bool ok = false;
-			busyFile = cfg.logPath + userName + cfg.extBusy;
+			busyFile = cfg.logPath + par.usrName + cfg.extBusy;
 			try
 			{
 				StreamWriter sw = File.CreateText(busyFile);
@@ -293,6 +320,47 @@ namespace Syncf
 		{
 			bool ok = false;
 			ok = Directory.Exists(cfg.logPath);
+			return ok;
+		}
+
+		bool CheckDir(string path, bool write = false)
+		{
+			bool ok = true;
+			try
+			{
+				ok = Directory.Exists(path);
+			}
+			catch (Exception ex)
+			{
+				ok = false;
+				MessageBox.Show($"Cartella '{path}' non trovata.\r\n{ex.Message.ToString()}");		
+			}
+
+			if(ok && write)
+			{
+				try
+				{
+					string randomfilename;
+					do
+					{
+						randomfilename = path + Path.GetRandomFileName();
+					}	while (File.Exists(randomfilename));				// File temporaneo casuale
+
+					StreamWriter sw = File.CreateText(randomfilename);		// Crea in scrittura, chiude e cancella
+					sw.Close();
+					if(File.Exists(randomfilename))
+					{
+						File.Delete(randomfilename);
+					}
+
+				}
+				catch (Exception ex)
+				{
+					ok = false;
+					MessageBox.Show($"Errore di scrittura nella cartelle '{path}'.\r\n{ex.Message.ToString()}");		
+				}	
+			}
+
 			return ok;
 		}
 
@@ -363,7 +431,7 @@ namespace Syncf
 			{
 				try
 				{
-					swLogFile.WriteLine($"[{DateTime.Now} {userName}] {msg}");
+					swLogFile.WriteLine($"[{DateTime.Now} {par.usrName}] {msg}");
 				}
 				catch(Exception ex)
 				{
@@ -378,7 +446,7 @@ namespace Syncf
 			}
 			if(ok && showMsg)
 			{
-				fmsg(msg);
+				par.fmsg(msg);
 			}
 			return ok;
 		}
@@ -455,13 +523,6 @@ namespace Syncf
 			string path, name, ext;
 			path = name = ext = string.Empty;
 
-			DividePath(cfg.test01, ref path, ref name, ref ext);
-			DividePath(cfg.test02, ref path, ref name, ref ext);
-			DividePath(cfg.test03, ref path, ref name, ref ext);
-			DividePath(cfg.test04, ref path, ref name, ref ext);
-			DividePath(cfg.test05, ref path, ref name, ref ext);
-
-
 			for(int i = 0;i < 10;i++)       // Esegue le operazioni
 				{
 					if(token.IsCancellationRequested)
@@ -471,11 +532,11 @@ namespace Syncf
 					}
 					else
 					{
-						fmsg('R'+i.ToString());
+						par.fmsg('R'+i.ToString());
 						Thread.Sleep(500);
 						if(i == 9)
 							{
-							fmsg("\r\n");
+							par.fmsg("\r\n");
 							ok = true;
 							}
 					}
@@ -501,11 +562,11 @@ namespace Syncf
 				}
 				else
 				{
-					fmsg('W'+i.ToString());
+					par.fmsg('W'+i.ToString());
 					Thread.Sleep(500);
 					if(i == 9)
 					{
-						fmsg("\r\n");
+						par.fmsg("\r\n");
 						ok = true;
 					}
 				}
