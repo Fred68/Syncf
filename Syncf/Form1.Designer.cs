@@ -38,6 +38,8 @@
 			btStop = new Button();
 			tbMsg = new TextBox();
 			panel1 = new Panel();
+			btTest = new Button();
+			tbTest = new TextBox();
 			statusStrip1 = new StatusStrip();
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
 			refreshTimer = new System.Windows.Forms.Timer(components);
@@ -133,6 +135,7 @@
 			// 
 			// panel1
 			// 
+			panel1.Controls.Add(btTest);
 			panel1.Controls.Add(tbMsg);
 			panel1.Controls.Add(gbComandi);
 			panel1.Controls.Add(btExit);
@@ -143,10 +146,27 @@
 			panel1.Size = new Size(508,351);
 			panel1.TabIndex = 7;
 			// 
+			// btTest
+			// 
+			btTest.Location = new Point(36,251);
+			btTest.Name = "btTest";
+			btTest.Size = new Size(104,23);
+			btTest.TabIndex = 8;
+			btTest.Text = "Test";
+			btTest.UseVisualStyleBackColor = true;
+			btTest.Click += btTest_Click;
+			// 
+			// tbTest
+			// 
+			tbTest.Location = new Point(0,357);
+			tbTest.Name = "tbTest";
+			tbTest.Size = new Size(502,23);
+			tbTest.TabIndex = 7;
+			// 
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0,379);
+			statusStrip1.Location = new Point(0,389);
 			statusStrip1.Name = "statusStrip1";
 			statusStrip1.Size = new Size(508,22);
 			statusStrip1.TabIndex = 8;
@@ -167,8 +187,9 @@
 			// 
 			AutoScaleDimensions = new SizeF(7F,15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(508,401);
+			ClientSize = new Size(508,411);
 			Controls.Add(statusStrip1);
+			Controls.Add(tbTest);
 			Controls.Add(panel1);
 			HelpButton = true;
 			MaximizeBox = false;
@@ -199,5 +220,7 @@
 		private ToolStripStatusLabel toolStripStatusLabel1;
 		private System.Windows.Forms.Timer refreshTimer;
 		private Button btClearLog;
+		private Button btTest;
+		private TextBox tbTest;
 	}
 	}

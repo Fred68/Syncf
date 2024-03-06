@@ -12,7 +12,7 @@ public enum FLS { LST, ALL_LST, ALL, None };
 
 	public class SyncfParams
 	{
-		public FuncMsg? fmsg;			// Delegate funzione che mostra i messaggi (altro task)
+		public FuncMsg fmsg;			// Delegate funzione che mostra i messaggi (altro task)
 		public string usrName;			// Nome utente
 		public string cfgFile;			// File di configurazione
 		public string lstFile;			// Nome (senza estensione) del fine con la lista
@@ -21,12 +21,12 @@ public enum FLS { LST, ALL_LST, ALL, None };
 
 		public SyncfParams()
 		{
-			this.fmsg = null;
+			this.fmsg = (string s) => {};	// Delegate che non fa nulla
 			this.usrName = this.cfgFile	= cfgFile = this.lstFile = string.Empty;
 			this.fls = FLS.None;
 			this.noFilterLst = false;
 		}
-		public SyncfParams(FuncMsg? f,string usrName, string cfgFile, string lstFile, FLS fls, bool noFilterLst)
+		public SyncfParams(FuncMsg f,string usrName, string cfgFile, string lstFile, FLS fls, bool noFilterLst)
 		{
 			this.fmsg		= f;
 			this.usrName	= usrName;

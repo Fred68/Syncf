@@ -111,8 +111,9 @@ namespace Fred68.GenDictionary
 				if(_dict[key].IsList)
 					{
 					StringBuilder l = new StringBuilder();
-					l.Append($"[{key}]="+"{");
+					l.Append($"[{key}]=");
 					dynamic lst = _dict[key].Get();
+					l.Append($"[{lst.Count}]"+"{");
 					for(int i=0; i < lst.Count; i++)
 						{
 						dynamic x = lst[i];

@@ -73,7 +73,15 @@ namespace Syncf
 					}
 					break;
 				}
-				
+				if(cfg.extYes.Count == 0)
+				{
+					sb.AppendLine("Nessuna estensione da includere");
+				}
+				if(cfg.extNo.Count == 0)
+				{
+					sb.AppendLine("Nessuna estensione da escludere");
+				}
+
 				sb.AppendLine(cfg.ToString());
 				sb.AppendLine(cfg.DumpEntries());
 				
@@ -207,6 +215,9 @@ namespace Syncf
 
 				if(par.fmsg == null) throw new Exception("Puntatatore a funzione fMsg nullo");
 
+				ClearEmptyString(cfg.extYes);
+				ClearEmptyString(cfg.extNo);
+
 			}
 			catch(Exception ex)
 			{
@@ -251,6 +262,25 @@ namespace Syncf
 			}
 
 			return ok;
+		}
+
+		void ClearEmptyString(List<string> l)
+		{
+			int i=0;
+			Stack<int> stack = new Stack<int>();
+			foreach(string s in l)
+			{
+				if(s.Length == 0)
+				{
+					stack.Push(i);
+				}
+				i++;
+			}
+			while(stack.Count > 0)
+			{
+				l.RemoveAt(stack.Pop());
+			}
+
 		}
 
 		bool CheckFolders()
@@ -323,6 +353,13 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Controlla se la directory esiste
+		/// e, se richiesto, se vi si può scrivere.
+		/// </summary>
+		/// <param name="path"></param>
+		/// <param name="write"></param>
+		/// <returns></returns>
 		bool CheckDir(string path, bool write = false)
 		{
 			bool ok = true;
@@ -459,37 +496,101 @@ namespace Syncf
 		/// <param name="name"></param>
 		/// <param name="ext"></param>
 		/// <returns></returns>
-		void DividePath(string fullpath, ref string path, ref string name, ref string ext)
+		bool DividePath(ref readonly string fullpath, out string path, out string name, out string ext)
 		{
-			int iExt, iPath;
-
-			iExt = fullpath.LastIndexOf('.');											// Inizio dell'estensione
-			iPath = int.Max(fullpath.LastIndexOf('/'),fullpath.LastIndexOf('\\'));		// Inizio del nome del file
-			
-			if(iExt != -1)
+			bool ok = false;
+			path = name = ext = "";
+			if(fullpath != null)
 			{
-				ext = fullpath.Substring(iExt);
+				if(fullpath.Length > 0)
+				{
+					int iPath;
+					iPath = int.Max(fullpath.LastIndexOf('/'),fullpath.LastIndexOf('\\'));		// Inizio del nome del file
+					ext = GetExt(in fullpath);
+					if(iPath != -1)
+					{
+						path = fullpath.Substring(0, iPath+1);
+					}
+					else
+					{
+						path = string.Empty;
+					}
+					name = fullpath.Substring(iPath+1,fullpath.Length-ext.Length-path.Length);
+					// Path. GetExtension(), GetFileNameWithoutExtension(), GetFullPath() restituiscono solo percorsi Windows con \\
+					ok = true;
+				}
 			}
-			else
-			{
-				ext = string.Empty;
-			}
-			
-			if(iPath != -1)
-			{
-				path = fullpath.Substring(0, iPath+1);
-			}
-			else
-			{
-				path = string.Empty;
-			}
-			
-			name = fullpath.Substring(iPath+1,fullpath.Length-ext.Length-path.Length);
-
-			// Path. GetExtension(), GetFileNameWithoutExtension(), GetFullPath() restituiscono solo percorsi Windows con \\
-
-			return;
+			return ok;
 		}
+
+		/// <summary>
+		/// Estrae l'estensione
+		/// </summary>
+		/// <param name="fullpath"></param>
+		/// <returns></returns>
+		string GetExt(ref readonly string? fullpath)
+		{
+			string ext = "";
+			if(fullpath != null)
+			{
+				if(fullpath.Length > 0)
+				{
+					int iExt = fullpath.LastIndexOf('.');
+					if(iExt != -1)
+					{
+						ext = fullpath.Substring(iExt);
+					}
+				}
+			}
+			return ext;
+		}
+
+		/// <summary>
+		/// Filtra in base all'estensione
+		/// </summary>
+		/// <param name="fullpath"></param>
+		/// <returns></returns>
+		public bool FilterExt(ref readonly string fullpath)
+		{
+			bool yes = false;
+
+			string s = GetExt(in fullpath);
+			foreach(string ext in cfg.extYes)
+			{
+				if(ext == "*")
+				{
+					yes = true;
+					break;
+				}
+				else
+				{
+					if(s == ext)
+					{
+						yes = true;
+						break;
+					}
+				}
+			}
+		
+			foreach(string ext in cfg.extNo)
+			{
+				if(ext == "*")
+				{
+					yes = false;
+					break;
+				}
+				else
+				{
+					if(s == ext)
+					{
+						yes = false;
+						break;
+					}
+				}
+			}
+			return yes;
+		}
+
 
 		#warning DA COMPLETARE
 		/// <summary>

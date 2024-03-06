@@ -16,7 +16,7 @@ namespace Syncf
 	public partial class Form1:Form
 	{
 		SyncFile sf;
-		SyncfParams par; 
+		SyncfParams par;
 
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
@@ -249,71 +249,71 @@ namespace Syncf
 				switch(s)
 				{
 					case CMD_USR:
-					{
-						cmd = CMD.USR;
-					}
-					break;
-					case CMD_CFG:
-					{
-						cmd = CMD.CFG;
-					}
-					break;
-					case CMD_LST:
-					{
-						cmd = CMD.LST;
-					}
-					break;
-					case CMD_ALL:
-					{
-						par.fls = FLS.ALL;						// Legge tutti i file
-						par.lstFile = string.Empty;
-						cmd = CMD.None;
-					}
-					break;
-					case CMD_NFL:
-					{
-						par.noFilterLst = true;
-						cmd = CMD.None;
-					}
-					break;
-					default:
-					{
-						switch(cmd)
 						{
-							case CMD.USR:
-							{
-								par.usrName = s;
-							}
-							break;
-							case CMD.CFG:
-							{
-								par.cfgFile = s;
-							}
-							break;
-							case CMD.LST:
-							{
-								if(par.fls != FLS.ALL)				// Se non c'é l'opzione -all...
-								{
-									if(s == "*")
-									{
-										par.fls = FLS.ALL_LST;		// Legge tutti i file di lista
-									}
-									else
-									{
-										par.lstFile = s;
-										par.fls = FLS.LST;			// Legge solo il file di lista specificato
-									}
-								}
-							}
-							break;
-							default:
-							{
-								cmd = CMD.None;
-							}
-							break;
+							cmd = CMD.USR;
 						}
-					}
-					break;
+						break;
+					case CMD_CFG:
+						{
+							cmd = CMD.CFG;
+						}
+						break;
+					case CMD_LST:
+						{
+							cmd = CMD.LST;
+						}
+						break;
+					case CMD_ALL:
+						{
+							par.fls = FLS.ALL;                      // Legge tutti i file
+							par.lstFile = string.Empty;
+							cmd = CMD.None;
+						}
+						break;
+					case CMD_NFL:
+						{
+							par.noFilterLst = true;
+							cmd = CMD.None;
+						}
+						break;
+					default:
+						{
+							switch(cmd)
+							{
+								case CMD.USR:
+									{
+										par.usrName = s;
+									}
+									break;
+								case CMD.CFG:
+									{
+										par.cfgFile = s;
+									}
+									break;
+								case CMD.LST:
+									{
+										if(par.fls != FLS.ALL)              // Se non c'é l'opzione -all...
+										{
+											if(s == "*")
+											{
+												par.fls = FLS.ALL_LST;      // Legge tutti i file di lista
+											}
+											else
+											{
+												par.lstFile = s;
+												par.fls = FLS.LST;          // Legge solo il file di lista specificato
+											}
+										}
+									}
+									break;
+								default:
+									{
+										cmd = CMD.None;
+									}
+									break;
+							}
+						}
+						break;
 				}
 			}
 
@@ -370,7 +370,7 @@ namespace Syncf
 					{
 						throw new Exception($"Numero di elementi {dd.Length} o {hh.Length} errato.");
 					}
-			}
+				}
 				else
 				{
 					throw new Exception($"Numero {n} di elementi in Resources.DT_txt {Resource.BDT} errato.");
@@ -475,7 +475,7 @@ namespace Syncf
 			}
 		}
 
-	
+
 
 		private void Form1_HelpButtonClicked(object sender,System.ComponentModel.CancelEventArgs e)
 		{
@@ -484,5 +484,12 @@ namespace Syncf
 		}
 
 		#endregion
+
+		private void btTest_Click(object sender,EventArgs e)
+		{
+			string txt = tbTest.Text;
+			bool x = sf.FilterExt(in txt);
+			MessageBox.Show(x ? "yes" : "no");
+		}
 	}
 }
