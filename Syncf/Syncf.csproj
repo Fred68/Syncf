@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <None Remove="BDT.txt" />
-    <None Remove="prebuild.bat" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,7 +43,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="D:\Software\Syncf\prebuild.bat" />
+    <Exec Command="CALL $(ProjectDir)pb.bat $(ProjectDir)BDT.txt" />
   </Target>
 
 </Project>
