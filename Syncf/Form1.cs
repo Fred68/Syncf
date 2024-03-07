@@ -488,8 +488,16 @@ namespace Syncf
 		private void btTest_Click(object sender,EventArgs e)
 		{
 			string txt = tbTest.Text;
-			bool x = sf.FilterExt(in txt);
-			MessageBox.Show(x ? "yes" : "no");
+			bool x;
+			StringBuilder sb = new StringBuilder();
+
+			x = sf.FilterExt(in txt);
+			sb.AppendLine("Extension: " + (x ? "yes" : "no"));
+			
+			x = sf.FilterMatch(in txt);
+			sb.AppendLine("Match: " + (x ? "yes" : "no"));
+
+			MessageBox.Show(sb.ToString());	
 		}
 	}
 }

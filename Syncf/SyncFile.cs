@@ -10,6 +10,8 @@ using static System.Net.Mime.MediaTypeNames;
 using System.IO;
 
 using Fred68.CfgReader;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace Syncf
 {
@@ -206,6 +208,8 @@ namespace Syncf
 				sTmp = cfg.destRoot;
 				lsTmp = cfg.extYes;
 				lsTmp = cfg.extNo;
+				lsTmp = cfg.matchYes;
+				lsTmp = cfg.matchNo ;
 				sTmp = cfg.logPath;
 				iTmp = cfg.maxDepth;
 
@@ -217,6 +221,8 @@ namespace Syncf
 
 				ClearEmptyString(cfg.extYes);
 				ClearEmptyString(cfg.extNo);
+				ClearEmptyString(cfg.matchYes);
+				ClearEmptyString(cfg.matchNo);
 
 			}
 			catch(Exception ex)
@@ -591,8 +597,23 @@ namespace Syncf
 			return yes;
 		}
 
+		public bool FilterMatch(ref readonly string fullpath)
+		{
+			bool yes = false;
+			foreach(string match in cfg.matchYes)
+			{
+				string pattern = "^" + Regex.Escape(match).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+				if(Regex.IsMatch(fullpath, pattern))
+				{
+					yes = true;
+					break;
+				}
+			#warning DA COMPLETARE
+			}
+			return yes;
+		}
 
-		#warning DA COMPLETARE
+		#warning FilterMatch() DA COMPLETARE !
 		/// <summary>
 		/// DA COMPLETARE
 		/// </summary>
