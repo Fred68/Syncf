@@ -74,7 +74,11 @@ namespace Fred68.CfgReader
 		/// <summary>
 		/// Separatore di lista
 		/// </summary>
-		public string CHR_ListSeparator {get; } = @";";
+		public string CHR_ListSeparator {get; } = @",";
+		/// <summary>
+		/// Fine linea (assegnazioni multilinea)
+		/// </summary>
+		public string CHR_MergeNextLine {get; } = @"_";
 		/// <summary>
 		/// Separatore tra tipo e nome variabile (spazio)
 		/// </summary>

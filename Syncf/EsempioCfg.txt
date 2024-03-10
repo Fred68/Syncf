@@ -1,5 +1,6 @@
 ﻿# SYNTAX
 # #...				Comment
+# _					Continue on next line
 # "..."				String (only one per-line)
 # [...]				New section or section start
 # [.]				End of section

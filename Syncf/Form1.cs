@@ -239,6 +239,11 @@ namespace Syncf
 			return ch[ich];
 		}
 
+		/// <summary>
+		/// Interpreta gli argomenti della chiamata
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		bool AnalyseArgs(string[] args)
 		{
 			bool ok = true;
@@ -280,19 +285,19 @@ namespace Syncf
 						{
 							switch(cmd)
 							{
-								case CMD.USR:
+								case CMD.USR:						// Utente non standard
 									{
 										par.usrName = s;
 									}
 									break;
 								case CMD.CFG:
 									{
-										par.cfgFile = s;
+										par.cfgFile = s;			// Configurazione non standard
 									}
 									break;
-								case CMD.LST:
+								case CMD.LST:						// File con lista
 									{
-										if(par.fls != FLS.ALL)              // Se non c'é l'opzione -all...
+										if(par.fls != FLS.ALL)		// Se non c'é l'opzione -all...
 										{
 											if(s == "*")
 											{
@@ -487,6 +492,7 @@ namespace Syncf
 
 		private void btTest_Click(object sender,EventArgs e)
 		{
+			#if false
 			string txt = tbTest.Text;
 			bool x;
 			StringBuilder sb = new StringBuilder();
@@ -498,6 +504,8 @@ namespace Syncf
 			sb.AppendLine("Match: " + (x ? "yes" : "no"));
 
 			MessageBox.Show(sb.ToString());	
+			#endif
+			
 		}
 	}
 }

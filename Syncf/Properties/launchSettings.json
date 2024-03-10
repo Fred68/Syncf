@@ -1,7 +1,12 @@
 {
   "profiles": {
     "Syncf": {
-      "commandName": "Project"
+        "commandName": "Project",
+        "commandLineArgs": "-lst *",
+        "commandLineArgs00": "-cfg fc",
+        "commandLineArgs01": "-lst *",
+        "commandLineArgs02": "-usr fc",
+        "commandLineArgs03": "-lst *"
     }
   }
 }

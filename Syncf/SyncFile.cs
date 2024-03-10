@@ -15,11 +15,22 @@ using System.Windows.Forms;
 
 namespace Syncf
 {
+	public enum INTERRUZIONE { ERR, TOKEN, None };
+
+	public class WorkingException : Exception
+	{
+		public WorkingException()	{}
+		public WorkingException(string message) : base(message)	{}
+
+		public WorkingException(string message, Exception inner) : base(message, inner)	{}
+	}
 
 	public class SyncFile
 	{
 		public delegate void FuncMsg(string msg);
 		public static string STD_CFG = "Syncf.cfg";
+		public static string INTERROTTO = "-> INCOMPLETO <-";
+		public static int MAXDEPTH = 32756;
 
 		SyncfParams par;
 		dynamic cfg;
@@ -93,6 +104,8 @@ namespace Syncf
 
 		#endregion
 
+		#warning Sostituire tutti i MessageBox.Show() con FuncMsg(string msg) o con Log()
+		#warning FuncMsg(...) aggiungere tipo: messaggio, segnalazione, errore, in vari colori
 
 		/// <summary>
 		/// Ctor
@@ -194,8 +207,9 @@ namespace Syncf
 			string sTmp;
 			List<string> lsTmp;
 			int iTmp;
+			bool bTmp;
 
-			// Controlla esistenza delle opzioni necessarie
+			// Controlla esistenza delle opzioni necessarie, con assegnazioni fittizie
 			try
 			{	
 				sTmp = cfg.extBusy;
@@ -212,9 +226,12 @@ namespace Syncf
 				lsTmp = cfg.matchNo ;
 				sTmp = cfg.logPath;
 				iTmp = cfg.maxDepth;
+				sTmp = cfg.redoF;	
+				bTmp = cfg.clearLst;
 
 				if(par.usrName.Length < 1)	throw new Exception("Utente non definito");
 				
+				if(cfg.maxDepth == -1)	cfg.maxDepth = MAXDEPTH;
 				if(cfg.maxDepth < 0) throw new Exception("maxDepth deve essere nulla o maggiore di zero");
 
 				if(par.fmsg == null) throw new Exception("Puntatatore a funzione fMsg nullo");
@@ -270,6 +287,10 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Elimina le stringhe vuote dalla lista
+		/// </summary>
+		/// <param name="l"></param>
 		void ClearEmptyString(List<string> l)
 		{
 			int i=0;
@@ -308,6 +329,7 @@ namespace Syncf
 			}
 			return ok;
 		}
+
 		/// <summary>
 		/// Crea il file di lock
 		/// </summary>
@@ -467,6 +489,7 @@ namespace Syncf
 		/// <param name="msg"></param>
 		/// <param name="showMsg">Mostra nella finestra</param>
 		/// <returns></returns>
+
 		bool Log(string msg, bool showMsg = true)
 		{
 			bool ok = true;
@@ -553,14 +576,16 @@ namespace Syncf
 
 		/// <summary>
 		/// Filtra in base all'estensione
+		/// Controlla prima extYes, poi extNo
 		/// </summary>
 		/// <param name="fullpath"></param>
 		/// <returns></returns>
 		public bool FilterExt(ref readonly string fullpath)
 		{
 			bool yes = false;
-
+			
 			string s = GetExt(in fullpath);
+
 			foreach(string ext in cfg.extYes)
 			{
 				if(ext == "*")
@@ -597,6 +622,12 @@ namespace Syncf
 			return yes;
 		}
 
+		/// <summary>
+		/// Filtra in base alle stringhe di confronto
+		/// Controlla prima matchYes, poi matchNo
+		/// </summary>
+		/// <param name="fullpath"></param>
+		/// <returns></returns>
 		public bool FilterMatch(ref readonly string fullpath)
 		{
 			bool yes = false;
@@ -608,12 +639,171 @@ namespace Syncf
 					yes = true;
 					break;
 				}
-			#warning DA COMPLETARE
 			}
+
+			foreach(string match in cfg.matchNo)
+			{
+				string pattern = "^" + Regex.Escape(match).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+				if(Regex.IsMatch(fullpath, pattern))
+				{
+					yes = false;
+					break;
+				}
+			}
+
 			return yes;
 		}
 
-		#warning FilterMatch() DA COMPLETARE !
+		/// <summary>
+		/// Compone la lista dei file indice da leggere
+		/// </summary>
+		/// <returns></returns>	
+		List<string> GetListFiles()
+		{	
+			List<string> lst = new List<string>();		
+
+			// Syncf -usr <user> -cfg <cfgfile> -lst <lstname> -all
+			if(par.fls == FLS.None)			//	Se: <lstname> è nullo, imposta il file <user>.lst e il flag a LST..
+			{
+				par.lstFile = par.usrName;
+				par.fls = FLS.LST;
+			}
+			if(par.fls == FLS.ALL_LST)		// Se: <lstname> è *, il flag è ALL_LST...
+			{
+				try
+				{
+					string[] files = Directory.GetFiles(cfg.logPath);
+					foreach(string file in files)
+					{
+						if(GetExt(in file) == cfg.indxF)
+						{
+							lst.Add(file);
+						}
+					}
+				}
+				catch(Exception ex)
+				{
+					MessageBox.Show($"Errore nella ricerca dei file indice in '{logFile}'\r\n{ex.Message.ToString()}");	
+				}
+			}
+			else if(par.fls == FLS.LST)		// Se <lstname> non è nullo (o è stato impostato come <user>, e il flag è LST..
+			{
+				if(File.Exists(cfg.logPath + par.lstFile + cfg.indxF))
+				{
+					lst.Add(cfg.logPath + par.lstFile + cfg.indxF);
+				}
+			}
+			return lst.Distinct().ToList();		// Restituisce nuova lista senza duplicati
+		}
+
+		/// <summary>
+		/// Lista dei file contenuti nei file elencati in ListFile
+		/// </summary>
+		/// <param name="listFiles"></param>
+		/// <param name="token"></param>
+		/// <param name="intr"></param>
+		/// <returns></returns>
+		List<string> GetFiles(List<string> listFiles, CancellationToken token, out INTERRUZIONE intr)
+		{
+			#warning FUNZIONE DA PROVARE
+
+			List<string> lst = new List<string>();
+			StreamReader? sr = null;
+			intr = INTERRUZIONE.None;
+
+			try
+			{
+				foreach(string file in listFiles)
+				{				
+					if(File.Exists(file))
+					{
+						string? f;
+						sr = new StreamReader(file);
+						while ((f = sr.ReadLine()) != null)
+						{
+							lst.Add(f);
+							if(token.IsCancellationRequested)
+							{
+								throw new WorkingException(INTERROTTO);
+							}
+						}
+						sr.Close();
+					}
+				}
+			}
+			catch(Exception ex)
+			{
+				if(sr != null)
+				{
+					sr.Close();
+				}
+
+				if(ex is WorkingException)
+				{
+					MessageBox.Show($"Interrotto");
+					intr = INTERRUZIONE.TOKEN;
+				}
+				else
+				{
+					MessageBox.Show($"Errore nella lettura dei file indice in '{cfg.logPath}'\r\n{ex.Message.ToString()}");
+					intr = INTERRUZIONE.ERR;
+				}
+
+			}
+			return lst.Distinct().ToList();
+		}
+
+		List<string> GetFiles(string origRoot, CancellationToken token, out INTERRUZIONE intr)
+		{
+			#warning FUNZIONE DA PROVARE
+
+			List<string> lst = new List<string>();
+			intr = INTERRUZIONE.None;
+			string folder = "";
+			Stack<Tuple<string,int>> folders = new Stack<Tuple<string,int>>();
+			folders.Push(new Tuple<string,int>(origRoot,0));
+			try
+			{
+				while(folders.Count > 0)
+				{
+					if(token.IsCancellationRequested)
+					{
+						throw new WorkingException(INTERROTTO);
+					}
+					Tuple<string,int> foldDpt = folders.Pop();
+					string[] lFiles = Directory.GetFiles(foldDpt.Item1);
+					string[] lFolders = Directory.GetDirectories(foldDpt.Item1);
+					if(foldDpt.Item2 <= cfg.maxDepth)
+					{
+						foreach(string lFile in lFiles)
+						{
+							lst.Add(lFile);
+						}
+						foreach(string lFolder in lFolders)
+						{
+							folders.Push(new Tuple<string,int>(lFolder,foldDpt.Item2+1));
+						}
+					}
+				}
+			}
+			catch(Exception ex)
+			{
+				if(ex is WorkingException)
+				{
+					MessageBox.Show($"Interrotto");
+					intr = INTERRUZIONE.TOKEN;
+				}
+				else
+				{
+					MessageBox.Show($"Errore durante la lettura della cartella '{folder}'\r\n{ex.Message.ToString()}");
+					intr = INTERRUZIONE.ERR;
+				}
+
+			}
+
+			return lst.Distinct().ToList();
+		}
+
 		/// <summary>
 		/// DA COMPLETARE
 		/// </summary>
@@ -622,13 +812,11 @@ namespace Syncf
 		public bool ReadFile(CancellationToken token)
 		{
 			bool ok = false;
+			List<string> files;
+			INTERRUZIONE intr;
 
-			#warning CREARE PRIMA LE FUNZIONI DI SUPPORTO:
-			#warning Confrontare una stringa (estensione) con le estensioni incluse ed escluse.
-			#warning Confrontare una stringa (path completo) con le cartelle include ed escluse (\folder\ oppure /folder/)
-			#warning Confrontare una stringa (nome con estensione, senza path) con una stringa con caratteri jolly.
-			#warning Cercare i file indice.
-
+			#warning Aggiungere cfg: cancella i file indice dopo l'uso
+			#warning Aggiungere cfg: file indice 'non copiati'
 			#warning DA FARE:
 			#warning Aprire il file di log
 			#warning Creare una lista
@@ -640,6 +828,20 @@ namespace Syncf
 			#warning In base all'estensione, aggiungere la riga alla lista (inserendo il path)
 			#warning Verificare se il file esiste.
 			#warning Chiudere il file di log con data, ora, utente
+			#warning Al file todo.txt vanno aggiunte linee con AppendLine()
+
+			List<string> lstFiles = GetListFiles();
+			if(lstFiles.Count > 0)
+			{
+				Log(
+				files = GetFiles(lstFiles, token, out intr);	
+			}
+			else
+			{
+				files = GetFiles(cfg.origRoot, token, out intr);
+			}
+
+			
 
 
 			string path, name, ext;
@@ -665,6 +867,7 @@ namespace Syncf
 				}
 			return ok;
 		}
+
 
 		#warning DA COMPLETARE
 		/// <summary>

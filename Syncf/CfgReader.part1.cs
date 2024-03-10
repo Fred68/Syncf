@@ -50,6 +50,7 @@ namespace Fred68.CfgReader
 		public void ReadConfiguration(string filename)
 			{
 			ReadConfig(filename);
+			MergeLines();
 			Process();
 			}
 
@@ -127,13 +128,15 @@ namespace Fred68.CfgReader
 						{
 						n++;
 						line = RemoveComment(line);
+						#if false
 						if(line.Length > 0)
 							{
-							#if false
+							
 							if(line.StartsWith(STR_Errore))
 								throw new Exception(string.Format(MSG.ErroreNellaRiga, n, line));
-							#endif
+							
 							}
+						#endif
 						_lines.Add(line);					// Linea aggiunta anch se vuota, per mantere il conteggio
 						}
 					}
@@ -144,6 +147,51 @@ namespace Fred68.CfgReader
 				ok = false;
 				}
 			}
+
+		/// <summary>
+		/// Elimina li linee vuote
+		/// </summary>
+		void ClearEmptyLines()
+		{
+			List<string> lines = new List<string>();
+			
+			foreach(string line in _lines)
+			{
+				if(line.Length > 0)
+				{
+				lines.Add(line);
+				}
+			}
+			_lines.Clear();
+			_lines = lines;
+		}
+
+		/// <summary>
+		/// Elimina il separatore di linea ed unisce le linee senza separatore alla successiva
+		/// </summary>
+		void MergeLines()
+		{
+			List<string> lines = new List<string>();
+			ClearEmptyLines();
+			string prevLine = "";
+			for(int i=0; i < _lines.Count; i++)
+			{
+				string s = _lines[i];	
+				List<int> indxs = s.IndexOfOutside(CHR_MergeNextLine,CHR_StringDelimiter,CHR_StringDelimiter);
+				if(indxs.Count > 0)
+				{
+					prevLine += s.Substring(0,indxs[indxs.Count-1]);
+				}
+				else
+				{
+					lines.Add(prevLine + s);
+					prevLine = "";
+				}
+			}
+			_lines.Clear();
+			_lines = lines;
+		return;
+		}
 
 		/// <summary>
 		/// Elimina i commenti e i caratteri non ammessi
