@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.DirectoryServices;
 using System.Reflection;
 using System.Resources;
@@ -11,7 +12,6 @@ using static Fred68.CfgReader.CfgReader;
 
 namespace Syncf
 {
-	public delegate bool FuncBkgnd(CancellationToken tk);
 
 	public partial class Form1:Form
 	{
@@ -54,10 +54,7 @@ namespace Syncf
 			arguments = args;
 			AnalyseArgs(args);
 			par.fmsg = AddMessageAltTask;
-
-			//par = new SyncfParams(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
-			//sf = new SyncFile(AddMessageAltTask,usrName,cfgFile,lstFileNoExt,fls);
-			sf = new SyncFile(par);
+			// Spostato sf = new SyncFile(par) in Form1_Load(), dopo creazione della finestra principale
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			this.MinimumSize = this.Size;
@@ -76,11 +73,11 @@ namespace Syncf
 		private void Form1_Load(object sender,EventArgs e)
 		{
 			SuspendLayout();
-
-			tbMsg.AppendText("\r\n");
+			sf = new SyncFile(par);
+			rtbMsg.AppendText("\r\n");
 			string msg = sf.msgConfiguration;
-			tbMsg.AppendText(msg);          //MessageBox.Show(msg);
-			tbMsg.SelectionLength = 0;      // Deseleziona
+			rtbMsg.AppendText(msg);          //MessageBox.Show(msg);
+			rtbMsg.SelectionLength = 0;      // Deseleziona
 
 			refreshTimer.Interval = 300;
 			refreshTimer.Start();
@@ -108,12 +105,23 @@ namespace Syncf
 
 		/// <summary>
 		/// Aggiunge messaggio alla finestra
+		/// '\n' esegue scroll
 		/// </summary>
 		/// <param name="msg"></param>
-		private void AddMessage(string msg)
+		private void AddMessage(string msg,MSG typ = MSG.Message)
 		{
-			tbMsg.AppendText(msg);
-			tbMsg.Invalidate();
+			int start = rtbMsg.TextLength;
+			rtbMsg.AppendText(msg);
+			rtbMsg.Select(start,msg.Length);
+			rtbMsg.SelectionColor = sf.txtCol[(int)typ];
+
+			if(msg.Contains('\n'))
+			{
+				rtbMsg.SelectionStart = rtbMsg.Text.Length;
+				rtbMsg.ScrollToCaret();
+			}
+
+			rtbMsg.Invalidate();
 		}
 
 		/// <summary>
@@ -121,9 +129,9 @@ namespace Syncf
 		/// ...chiamata da task differente dal quello principale (UI)
 		/// </summary>
 		/// <param name="msg"></param>
-		public void AddMessageAltTask(string msg)
+		public void AddMessageAltTask(string msg,MSG typ)
 		{
-			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,typ)));
 		}
 
 		/// <summary>
@@ -203,12 +211,12 @@ namespace Syncf
 				msg = "\r\nOperazione fallita o interrotta\r\n";
 			}
 
-			tbMsg.BeginInvoke(new Action(() => AddMessage(msg)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning)));
 			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
 
 			if(closeRequest)
 			{
-				tbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...")));
+				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...",MSG.Error)));
 				Thread.Sleep(2000);
 				this.BeginInvoke(new Action(() => Close()));
 			}
@@ -285,19 +293,19 @@ namespace Syncf
 						{
 							switch(cmd)
 							{
-								case CMD.USR:						// Utente non standard
+								case CMD.USR:                       // Utente non standard
 									{
 										par.usrName = s;
 									}
 									break;
 								case CMD.CFG:
 									{
-										par.cfgFile = s;			// Configurazione non standard
+										par.cfgFile = s;            // Configurazione non standard
 									}
 									break;
-								case CMD.LST:						// File con lista
+								case CMD.LST:                       // File con lista
 									{
-										if(par.fls != FLS.ALL)		// Se non c'é l'opzione -all...
+										if(par.fls != FLS.ALL)      // Se non c'é l'opzione -all...
 										{
 											if(s == "*")
 											{
@@ -418,7 +426,7 @@ namespace Syncf
 					e.Cancel = true;            // Annulla chiusura
 					closeRequest = true;        // Richiede chiusura al termine del task
 					StopTask();                 // Richiede arresto del task
-					AddMessage("\r\nArresto operazione in corso...\r\n");
+					AddMessage("\r\nArresto operazione in corso...\r\n",MSG.Error);
 				}
 				else
 				{               // ...se nessun task, prosegue con la chiusura
@@ -480,19 +488,28 @@ namespace Syncf
 			}
 		}
 
-
-
 		private void Form1_HelpButtonClicked(object sender,System.ComponentModel.CancelEventArgs e)
 		{
 			e.Cancel = true;
 			MessageBox.Show(Version());
+		}
+		private void btLogFolder_Click(object sender,EventArgs e)
+		{
+			if(Directory.Exists(sf.logPath))
+			{
+				Process.Start("explorer.exe" , sf.logPath);
+			}
+			else
+			{
+			MessageBox.Show($"Cartella di log '{sf.logPath}' non trovata.");
+			}
 		}
 
 		#endregion
 
 		private void btTest_Click(object sender,EventArgs e)
 		{
-			#if false
+#if false
 			string txt = tbTest.Text;
 			bool x;
 			StringBuilder sb = new StringBuilder();
@@ -504,8 +521,10 @@ namespace Syncf
 			sb.AppendLine("Match: " + (x ? "yes" : "no"));
 
 			MessageBox.Show(sb.ToString());	
-			#endif
-			
+#endif
+
 		}
+
+
 	}
 }

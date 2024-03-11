@@ -15,22 +15,14 @@ using System.Windows.Forms;
 
 namespace Syncf
 {
-	public enum INTERRUZIONE { ERR, TOKEN, None };
-
-	public class WorkingException : Exception
-	{
-		public WorkingException()	{}
-		public WorkingException(string message) : base(message)	{}
-
-		public WorkingException(string message, Exception inner) : base(message, inner)	{}
-	}
 
 	public class SyncFile
 	{
-		public delegate void FuncMsg(string msg);
+		public delegate void FuncMsg(string msg, MSG typ);
 		public static string STD_CFG = "Syncf.cfg";
 		public static string INTERROTTO = "-> INCOMPLETO <-";
 		public static int MAXDEPTH = 32756;
+		public Color[] txtCol = {Color.Black, Color.Blue, Color.Red};
 
 		SyncfParams par;
 		dynamic cfg;
@@ -101,16 +93,19 @@ namespace Syncf
 				return sb.ToString();
 			}
 		}
+		
+		/// <summary>
+		/// Cartella di log
+		/// </summary>
+		public string logPath		{
+			get { return cfg.logPath; }
+		}
 
 		#endregion
 
-		#warning Sostituire tutti i MessageBox.Show() con FuncMsg(string msg) o con Log()
-		#warning FuncMsg(...) aggiungere tipo: messaggio, segnalazione, errore, in vari colori
-
 		/// <summary>
 		/// Ctor
-		/// </summary>
-		
+		/// </summary>	
 		public SyncFile(SyncfParams p)
 		{
 			cfg = new CfgReader();
@@ -153,7 +148,13 @@ namespace Syncf
 
 			if(enabled)
 			{
-				enabled = CheckFolders();
+				string s;
+				enabled = CheckFolders(out s);
+				if(!enabled)
+				{
+					MessageBox.Show(s);
+				}
+					
 			}
 			Log("Avvio programma",false);
 		}
@@ -169,15 +170,15 @@ namespace Syncf
 				case 0:
 					break;
 				case 1:
-					par.fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n",MSG.Message);
 					f = ReadFile;
 					break;
 				case 2:
-					par.fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n",MSG.Message);
 					f = WriteFile;
 					break;
 				case 3:
-					par.fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n");
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n",MSG.Message);
 					f = ReadWriteFile;
 					break;
 				default:
@@ -229,6 +230,8 @@ namespace Syncf
 				sTmp = cfg.redoF;	
 				bTmp = cfg.clearLst;
 
+				if(txtCol.Length != (int)MSG.None)	throw new Exception("Color[] txtCol and enum MSG hanno lunghezze differenti");
+
 				if(par.usrName.Length < 1)	throw new Exception("Utente non definito");
 				
 				if(cfg.maxDepth == -1)	cfg.maxDepth = MAXDEPTH;
@@ -247,10 +250,6 @@ namespace Syncf
 				ok = false;
 				MessageBox.Show($"Errore nella configurazione\r\n{ex.Message.ToString()}");
 			}
-
-			#if DEBUG
-			Process.Start("explorer.exe" , cfg.logPath);
-			#endif
 
 			// Controlla esistenza della cartella di log
 			if(ok)
@@ -310,23 +309,26 @@ namespace Syncf
 
 		}
 
-		bool CheckFolders()
+		bool CheckFolders(out string msg)
 		{
 			bool ok = true;
 			
+			StringBuilder sb = new StringBuilder();
+
 			// Controlla la cartella di origine
 			if(!CheckDir(cfg.origRoot, false))
 			{
 				ok = false;
-				MessageBox.Show($"La directory radice di origine {cfg.origRoot} non esiste.");
+				sb.AppendLine($"La directory radice di origine {cfg.origRoot} non esiste.");
 			}
 
 			// Controlla la cartella di destinazione
 			if(!CheckDir(cfg.destRoot, true))
 			{
 				ok = false;
-				MessageBox.Show($"La directory radice di destinazione {cfg.destRoot} non è accessibile in scrittura.");
+				sb.AppendLine($"La directory radice di destinazione {cfg.destRoot} non è accessibile in scrittura.");
 			}
+			msg = sb.ToString();
 			return ok;
 		}
 
@@ -347,7 +349,7 @@ namespace Syncf
 			catch (Exception ex)
 			{
 				ok = false;
-				MessageBox.Show($"Errore nella creazione del file '{busyFile}' nella cartella '{cfg.logPath}'\r\n{ex.Message.ToString()}");	
+				par.fmsg($"Errore nella creazione del file '{busyFile}' nella cartella '{cfg.logPath}'\r\n{ex.Message.ToString()}", MSG.Error);
 			}
 			return ok;
 		}
@@ -365,7 +367,7 @@ namespace Syncf
 				}
 				catch(Exception e)
 				{
-					MessageBox.Show($"Errore nella cancellazione del file '{busyFile}'\r\n{e.Message.ToString()}");
+					par.fmsg($"Errore nella cancellazione del file '{busyFile}'\r\n{e.Message.ToString()}", MSG.Error);
 				}
 			}
 		}
@@ -398,7 +400,7 @@ namespace Syncf
 			catch (Exception ex)
 			{
 				ok = false;
-				MessageBox.Show($"Cartella '{path}' non trovata.\r\n{ex.Message.ToString()}");		
+				par.fmsg($"Cartella '{path}' non trovata.\r\n{ex.Message.ToString()}", MSG.Error);
 			}
 
 			if(ok && write)
@@ -422,7 +424,7 @@ namespace Syncf
 				catch (Exception ex)
 				{
 					ok = false;
-					MessageBox.Show($"Errore di scrittura nella cartelle '{path}'.\r\n{ex.Message.ToString()}");		
+					par.fmsg($"Errore di scrittura nella cartelle '{path}'.\r\n{ex.Message.ToString()}", MSG.Error);
 				}	
 			}
 
@@ -457,7 +459,7 @@ namespace Syncf
 				{
 					ok = false;
 					swLogFile = null;
-					MessageBox.Show($"Errore {op} del file di log '{logFile}'\r\n{ex.Message.ToString()}");	
+					par.fmsg($"Errore {op} del file di log '{logFile}'\r\n{ex.Message.ToString()}", MSG.Error);
 				}
 			}
 			return ok;
@@ -502,17 +504,17 @@ namespace Syncf
 				catch(Exception ex)
 				{
 					ok = false;
-					MessageBox.Show($"Errore nella scrittura del file di log '{logFile}'\r\n{ex.Message.ToString()}");	
+					par.fmsg($"Errore nella scrittura del file di log '{logFile}'\r\n{ex.Message.ToString()}", MSG.Error);	
 				}
 			}
 			else
 			{
 				ok = false;
-				MessageBox.Show($"Tentativo di scrittura su file di log non aperto");
+				par.fmsg($"Tentativo di scrittura su file di log non aperto", MSG.Error);
 			}
 			if(ok && showMsg)
 			{
-				par.fmsg(msg);
+				par.fmsg(msg,MSG.Message);
 			}
 			return ok;
 		}
@@ -683,7 +685,7 @@ namespace Syncf
 				}
 				catch(Exception ex)
 				{
-					MessageBox.Show($"Errore nella ricerca dei file indice in '{logFile}'\r\n{ex.Message.ToString()}");	
+					par.fmsg($"Errore nella ricerca dei file indice in '{logFile}'\r\n{ex.Message.ToString()}", MSG.Error);
 				}
 			}
 			else if(par.fls == FLS.LST)		// Se <lstname> non è nullo (o è stato impostato come <user>, e il flag è LST..
@@ -740,12 +742,12 @@ namespace Syncf
 
 				if(ex is WorkingException)
 				{
-					MessageBox.Show($"Interrotto");
+					par.fmsg($"Interrotto", MSG.Warning);
 					intr = INTERRUZIONE.TOKEN;
 				}
 				else
 				{
-					MessageBox.Show($"Errore nella lettura dei file indice in '{cfg.logPath}'\r\n{ex.Message.ToString()}");
+					par.fmsg($"Errore nella lettura dei file indice in '{cfg.logPath}'\r\n{ex.Message.ToString()}", MSG.Error);
 					intr = INTERRUZIONE.ERR;
 				}
 
@@ -777,7 +779,13 @@ namespace Syncf
 					{
 						foreach(string lFile in lFiles)
 						{
-							lst.Add(lFile);
+							if(FilterExt(lFile))
+							{
+								if(FilterMatch(lFile))
+								{
+								lst.Add(lFile);
+								}
+							}
 						}
 						foreach(string lFolder in lFolders)
 						{
@@ -790,12 +798,12 @@ namespace Syncf
 			{
 				if(ex is WorkingException)
 				{
-					MessageBox.Show($"Interrotto");
+					par.fmsg($"Interrotto", MSG.Warning);
 					intr = INTERRUZIONE.TOKEN;
 				}
 				else
 				{
-					MessageBox.Show($"Errore durante la lettura della cartella '{folder}'\r\n{ex.Message.ToString()}");
+					par.fmsg($"Errore durante la lettura della cartella '{folder}'\r\n{ex.Message.ToString()}", MSG.Error);
 					intr = INTERRUZIONE.ERR;
 				}
 
@@ -817,6 +825,9 @@ namespace Syncf
 
 			#warning Aggiungere cfg: cancella i file indice dopo l'uso
 			#warning Aggiungere cfg: file indice 'non copiati'
+			#warning Modificare cfg: origRoot e destRoot devono essere array della stessa dimensione
+			#warning Aggiungere Log() nei punti significativi
+
 			#warning DA FARE:
 			#warning Aprire il file di log
 			#warning Creare una lista
@@ -833,7 +844,7 @@ namespace Syncf
 			List<string> lstFiles = GetListFiles();
 			if(lstFiles.Count > 0)
 			{
-				Log(
+				//Log(
 				files = GetFiles(lstFiles, token, out intr);	
 			}
 			else
@@ -847,7 +858,7 @@ namespace Syncf
 			string path, name, ext;
 			path = name = ext = string.Empty;
 
-			for(int i = 0;i < 10;i++)       // Esegue le operazioni
+			for(int i = 0;i < 30;i++)       // Esegue le operazioni
 				{
 					if(token.IsCancellationRequested)
 					{
@@ -856,11 +867,11 @@ namespace Syncf
 					}
 					else
 					{
-						par.fmsg('R'+i.ToString());
+						par.fmsg('R'+i.ToString(),MSG.Message);
 						Thread.Sleep(500);
-						if(i == 9)
+						if(i == 29)
 							{
-							par.fmsg("\r\n");
+							par.fmsg("\r\n",MSG.Message);
 							ok = true;
 							}
 					}
@@ -887,11 +898,11 @@ namespace Syncf
 				}
 				else
 				{
-					par.fmsg('W'+i.ToString());
+					par.fmsg('W'+i.ToString(),MSG.Message);
 					Thread.Sleep(500);
 					if(i == 9)
 					{
-						par.fmsg("\r\n");
+						par.fmsg("\r\n",MSG.Message);
 						ok = true;
 					}
 				}

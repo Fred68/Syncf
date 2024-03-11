@@ -36,8 +36,9 @@
 			gbComandi = new GroupBox();
 			btClearLog = new Button();
 			btStop = new Button();
-			tbMsg = new TextBox();
+			rtbMsg = new RichTextBox();
 			panel1 = new Panel();
+			btLogFolder = new Button();
 			btTest = new Button();
 			tbTest = new TextBox();
 			statusStrip1 = new StatusStrip();
@@ -121,36 +122,48 @@
 			btStop.UseVisualStyleBackColor = true;
 			btStop.Click += btStop_Click;
 			// 
-			// tbMsg
+			// rtbMsg
 			// 
-			tbMsg.BorderStyle = BorderStyle.FixedSingle;
-			tbMsg.Dock = DockStyle.Right;
-			tbMsg.Location = new Point(177,0);
-			tbMsg.Multiline = true;
-			tbMsg.Name = "tbMsg";
-			tbMsg.ReadOnly = true;
-			tbMsg.ScrollBars = ScrollBars.Vertical;
-			tbMsg.Size = new Size(331,351);
-			tbMsg.TabIndex = 0;
+			rtbMsg.BackColor = SystemColors.Control;
+			rtbMsg.BorderStyle = BorderStyle.FixedSingle;
+			rtbMsg.Dock = DockStyle.Right;
+			rtbMsg.Font = new Font("Segoe UI",8.25F,FontStyle.Regular,GraphicsUnit.Point,0);
+			rtbMsg.Location = new Point(167,0);
+			rtbMsg.Name = "rtbMsg";
+			rtbMsg.ScrollBars = RichTextBoxScrollBars.Vertical;
+			rtbMsg.Size = new Size(295,351);
+			rtbMsg.TabIndex = 9;
+			rtbMsg.Text = "";
 			// 
 			// panel1
 			// 
+			panel1.Controls.Add(btLogFolder);
+			panel1.Controls.Add(rtbMsg);
 			panel1.Controls.Add(btTest);
-			panel1.Controls.Add(tbMsg);
 			panel1.Controls.Add(gbComandi);
 			panel1.Controls.Add(btExit);
 			panel1.Controls.Add(btStop);
 			panel1.Dock = DockStyle.Top;
 			panel1.Location = new Point(0,0);
 			panel1.Name = "panel1";
-			panel1.Size = new Size(508,351);
+			panel1.Size = new Size(462,351);
 			panel1.TabIndex = 7;
+			// 
+			// btLogFolder
+			// 
+			btLogFolder.Location = new Point(32,230);
+			btLogFolder.Name = "btLogFolder";
+			btLogFolder.Size = new Size(110,27);
+			btLogFolder.TabIndex = 10;
+			btLogFolder.Text = "Cartella di log";
+			btLogFolder.UseVisualStyleBackColor = true;
+			btLogFolder.Click += btLogFolder_Click;
 			// 
 			// btTest
 			// 
-			btTest.Location = new Point(36,251);
+			btTest.Location = new Point(32,260);
 			btTest.Name = "btTest";
-			btTest.Size = new Size(104,23);
+			btTest.Size = new Size(110,27);
 			btTest.TabIndex = 8;
 			btTest.Text = "Test";
 			btTest.UseVisualStyleBackColor = true;
@@ -160,15 +173,15 @@
 			// 
 			tbTest.Location = new Point(0,357);
 			tbTest.Name = "tbTest";
-			tbTest.Size = new Size(502,23);
+			tbTest.Size = new Size(462,23);
 			tbTest.TabIndex = 7;
 			// 
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0,389);
+			statusStrip1.Location = new Point(0,382);
 			statusStrip1.Name = "statusStrip1";
-			statusStrip1.Size = new Size(508,22);
+			statusStrip1.Size = new Size(462,22);
 			statusStrip1.TabIndex = 8;
 			statusStrip1.Text = "statusStrip1";
 			// 
@@ -187,7 +200,7 @@
 			// 
 			AutoScaleDimensions = new SizeF(7F,15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(508,411);
+			ClientSize = new Size(462,404);
 			Controls.Add(statusStrip1);
 			Controls.Add(tbTest);
 			Controls.Add(panel1);
@@ -200,7 +213,6 @@
 			Load += Form1_Load;
 			gbComandi.ResumeLayout(false);
 			panel1.ResumeLayout(false);
-			panel1.PerformLayout();
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
 			ResumeLayout(false);
@@ -214,7 +226,6 @@
 		private Button btExit;
 		private GroupBox gbComandi;
 		private Button btStop;
-		private TextBox tbMsg;
 		private Panel panel1;
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel toolStripStatusLabel1;
@@ -222,5 +233,7 @@
 		private Button btClearLog;
 		private Button btTest;
 		private TextBox tbTest;
+		private RichTextBox rtbMsg;
+		private Button btLogFolder;
 	}
 	}

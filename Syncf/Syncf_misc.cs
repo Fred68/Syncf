@@ -7,8 +7,21 @@ using static Syncf.SyncFile;
 
 namespace Syncf
 {
+	public enum INTERRUZIONE { ERR, TOKEN, None };
 
-public enum FLS { LST, ALL_LST, ALL, None };
+	public enum MSG { Message, Warning, Error, None };
+
+	public class WorkingException : Exception
+	{
+		public WorkingException()	{}
+		public WorkingException(string message) : base(message)	{}
+
+		public WorkingException(string message, Exception inner) : base(message, inner)	{}
+	}
+
+	public delegate bool FuncBkgnd(CancellationToken tk);
+
+	public enum FLS { LST, ALL_LST, ALL, None };
 
 	public class SyncfParams
 	{
@@ -21,7 +34,7 @@ public enum FLS { LST, ALL_LST, ALL, None };
 
 		public SyncfParams()
 		{
-			this.fmsg = (string s) => {};	// Delegate che non fa nulla
+			this.fmsg = (string s,MSG t) => {};	// Delegate che non fa nulla
 			this.usrName = this.cfgFile	= cfgFile = this.lstFile = string.Empty;
 			this.fls = FLS.None;
 			this.noFilterLst = false;
