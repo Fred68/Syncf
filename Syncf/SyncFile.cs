@@ -705,10 +705,9 @@ namespace Syncf
 		/// <param name="token"></param>
 		/// <param name="intr"></param>
 		/// <returns></returns>
+		#warning FUNZIONE DA PROVARE
 		List<string> GetFiles(List<string> listFiles, CancellationToken token, out INTERRUZIONE intr)
 		{
-			#warning FUNZIONE DA PROVARE
-
 			List<string> lst = new List<string>();
 			StreamReader? sr = null;
 			intr = INTERRUZIONE.None;
@@ -755,9 +754,11 @@ namespace Syncf
 			return lst.Distinct().ToList();
 		}
 
+
+		#warning FUNZIONE DA PROVARE
 		List<string> GetFiles(string origRoot, CancellationToken token, out INTERRUZIONE intr)
 		{
-			#warning FUNZIONE DA PROVARE
+			
 
 			List<string> lst = new List<string>();
 			intr = INTERRUZIONE.None;
@@ -783,7 +784,7 @@ namespace Syncf
 							{
 								if(FilterMatch(lFile))
 								{
-								lst.Add(lFile);
+									lst.Add(lFile);
 								}
 							}
 						}
@@ -812,6 +813,12 @@ namespace Syncf
 			return lst.Distinct().ToList();
 		}
 
+
+		#warning Aggiungere cfg: cancella i file indice dopo l'uso
+		#warning Aggiungere cfg: file indice 'non copiati'
+		#warning Modificare cfg: origRoot e destRoot devono essere array della stessa dimensione
+		#warning Aggiungere Log() nei punti significativi
+
 		/// <summary>
 		/// DA COMPLETARE
 		/// </summary>
@@ -823,25 +830,14 @@ namespace Syncf
 			List<string> files;
 			INTERRUZIONE intr;
 
-			#warning Aggiungere cfg: cancella i file indice dopo l'uso
-			#warning Aggiungere cfg: file indice 'non copiati'
-			#warning Modificare cfg: origRoot e destRoot devono essere array della stessa dimensione
-			#warning Aggiungere Log() nei punti significativi
-
-			#warning DA FARE:
-			#warning Aprire il file di log
-			#warning Creare una lista
-			#warning Cercare i file indice.
-			#warning Se ci sono, leggere tutte le righe.
-			#warning Se non ci sono file indice, percorrere tutti i file sotto il path di origine.
-			#warning Se errore, salvarlo nel file di log.
-			#warning Per ogni riga, estrarre l'estensione.
-			#warning In base all'estensione, aggiungere la riga alla lista (inserendo il path)
-			#warning Verificare se il file esiste.
-			#warning Chiudere il file di log con data, ora, utente
-			#warning Al file todo.txt vanno aggiunte linee con AppendLine()
+			#warning Aprire il file di log.
+			#warning Salvare operazioni ed errori nel file di log.
 
 			List<string> lstFiles = GetListFiles();
+
+			#warning ELIMINARE DOPO TEST
+			lstFiles.Clear();
+
 			if(lstFiles.Count > 0)
 			{
 				//Log(
@@ -852,9 +848,20 @@ namespace Syncf
 				files = GetFiles(cfg.origRoot, token, out intr);
 			}
 
+			#warning Chiudere il file di log con data, ora, utente
 			
 
+			StringBuilder sb = new StringBuilder();
+			foreach (string s in files)
+			{
+				sb.AppendLine(s);
+			}
+			//MessageBox.Show(sb.ToString());
+			#warning Al file todo.txt vanno aggiunte linee con AppendLine()
+			#warning Correggere dopo test
+			File.WriteAllText(cfg.logPath + cfg.todoF, sb.ToString());
 
+			#if false
 			string path, name, ext;
 			path = name = ext = string.Empty;
 
@@ -876,6 +883,8 @@ namespace Syncf
 							}
 					}
 				}
+			#endif
+
 			return ok;
 		}
 

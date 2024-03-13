@@ -413,7 +413,8 @@ namespace Syncf
 		{
 			if(!closeRequest)   // Chiede conferma, se non c'è già una richiesta di chiusura
 			{
-				if(MessageBox.Show("Uscire ?","Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
+				string msg = (running ? "Operazione in corso...\r\n\r\n" : "") + "Uscire ?";
+				if(MessageBox.Show(msg, "Confermare chiusura programma", MessageBoxButtons.OKCancel) != DialogResult.OK)
 				{
 					e.Cancel = true;
 				}
