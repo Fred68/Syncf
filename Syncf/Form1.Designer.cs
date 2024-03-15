@@ -34,20 +34,21 @@
 			btReadWrite = new Button();
 			btExit = new Button();
 			gbComandi = new GroupBox();
+			btClearTodo = new Button();
+			btViewTodo = new Button();
 			btClearLog = new Button();
 			btStop = new Button();
 			rtbMsg = new RichTextBox();
 			panel1 = new Panel();
-			toDisable = new GroupBox();
-			groupBox1 = new GroupBox();
+			gbLog = new GroupBox();
 			btLogFolder = new Button();
 			statusStrip1 = new StatusStrip();
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
 			refreshTimer = new System.Windows.Forms.Timer(components);
+			toolTip1 = new ToolTip(components);
 			gbComandi.SuspendLayout();
 			panel1.SuspendLayout();
-			toDisable.SuspendLayout();
-			groupBox1.SuspendLayout();
+			gbLog.SuspendLayout();
 			statusStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
@@ -83,7 +84,7 @@
 			// 
 			// btExit
 			// 
-			btExit.Location = new Point(32,370);
+			btExit.Location = new Point(32,354);
 			btExit.Name = "btExit";
 			btExit.Size = new Size(110,27);
 			btExit.TabIndex = 4;
@@ -93,20 +94,41 @@
 			// 
 			// gbComandi
 			// 
-			gbComandi.Controls.Add(btClearLog);
+			gbComandi.Controls.Add(btClearTodo);
+			gbComandi.Controls.Add(btViewTodo);
 			gbComandi.Controls.Add(btReadWrite);
 			gbComandi.Controls.Add(btWrite);
 			gbComandi.Controls.Add(btRead);
-			gbComandi.Location = new Point(0,9);
+			gbComandi.Location = new Point(12,12);
 			gbComandi.Name = "gbComandi";
-			gbComandi.Size = new Size(149,166);
+			gbComandi.Size = new Size(149,197);
 			gbComandi.TabIndex = 5;
 			gbComandi.TabStop = false;
 			gbComandi.Text = "Comandi";
 			// 
+			// btClearTodo
+			// 
+			btClearTodo.Location = new Point(20,154);
+			btClearTodo.Name = "btClearTodo";
+			btClearTodo.Size = new Size(110,27);
+			btClearTodo.TabIndex = 5;
+			btClearTodo.Text = "Azzera lista";
+			btClearTodo.UseVisualStyleBackColor = true;
+			btClearTodo.Click += btClearTodo_Click;
+			// 
+			// btViewTodo
+			// 
+			btViewTodo.Location = new Point(20,121);
+			btViewTodo.Name = "btViewTodo";
+			btViewTodo.Size = new Size(110,27);
+			btViewTodo.TabIndex = 4;
+			btViewTodo.Text = "Vedi lista";
+			btViewTodo.UseVisualStyleBackColor = true;
+			btViewTodo.Click += btViewTodo_Click;
+			// 
 			// btClearLog
 			// 
-			btClearLog.Location = new Point(20,121);
+			btClearLog.Location = new Point(20,55);
 			btClearLog.Name = "btClearLog";
 			btClearLog.Size = new Size(110,27);
 			btClearLog.TabIndex = 4;
@@ -116,7 +138,7 @@
 			// 
 			// btStop
 			// 
-			btStop.Location = new Point(32,337);
+			btStop.Location = new Point(32,321);
 			btStop.Name = "btStop";
 			btStop.Size = new Size(110,27);
 			btStop.TabIndex = 6;
@@ -129,16 +151,19 @@
 			rtbMsg.BackColor = SystemColors.Control;
 			rtbMsg.BorderStyle = BorderStyle.None;
 			rtbMsg.Font = new Font("Segoe UI",8.25F,FontStyle.Regular,GraphicsUnit.Point,0);
-			rtbMsg.Location = new Point(246,17);
+			rtbMsg.Location = new Point(167,34);
 			rtbMsg.Name = "rtbMsg";
+			rtbMsg.ReadOnly = true;
 			rtbMsg.ScrollBars = RichTextBoxScrollBars.Vertical;
-			rtbMsg.Size = new Size(295,347);
+			rtbMsg.Size = new Size(374,347);
 			rtbMsg.TabIndex = 9;
 			rtbMsg.Text = "";
+			rtbMsg.WordWrap = false;
 			// 
 			// panel1
 			// 
-			panel1.Controls.Add(toDisable);
+			panel1.Controls.Add(gbComandi);
+			panel1.Controls.Add(gbLog);
 			panel1.Controls.Add(rtbMsg);
 			panel1.Controls.Add(btExit);
 			panel1.Controls.Add(btStop);
@@ -148,27 +173,16 @@
 			panel1.Size = new Size(553,400);
 			panel1.TabIndex = 7;
 			// 
-			// toDisable
+			// gbLog
 			// 
-			toDisable.Controls.Add(gbComandi);
-			toDisable.Controls.Add(groupBox1);
-			toDisable.FlatStyle = FlatStyle.Flat;
-			toDisable.Location = new Point(3,3);
-			toDisable.Margin = new Padding(0);
-			toDisable.Name = "toDisable";
-			toDisable.Size = new Size(158,309);
-			toDisable.TabIndex = 12;
-			toDisable.TabStop = false;
-			// 
-			// groupBox1
-			// 
-			groupBox1.Controls.Add(btLogFolder);
-			groupBox1.Location = new Point(3,181);
-			groupBox1.Name = "groupBox1";
-			groupBox1.Size = new Size(149,100);
-			groupBox1.TabIndex = 11;
-			groupBox1.TabStop = false;
-			groupBox1.Text = "Log";
+			gbLog.Controls.Add(btClearLog);
+			gbLog.Controls.Add(btLogFolder);
+			gbLog.Location = new Point(12,215);
+			gbLog.Name = "gbLog";
+			gbLog.Size = new Size(149,100);
+			gbLog.TabIndex = 11;
+			gbLog.TabStop = false;
+			gbLog.Text = "Log";
 			// 
 			// btLogFolder
 			// 
@@ -216,8 +230,7 @@
 			Load += Form1_Load;
 			gbComandi.ResumeLayout(false);
 			panel1.ResumeLayout(false);
-			toDisable.ResumeLayout(false);
-			groupBox1.ResumeLayout(false);
+			gbLog.ResumeLayout(false);
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
 			ResumeLayout(false);
@@ -237,8 +250,10 @@
 		private System.Windows.Forms.Timer refreshTimer;
 		private RichTextBox rtbMsg;
 		private Button btClearLog;
-		private GroupBox groupBox1;
+		private GroupBox gbLog;
 		private Button btLogFolder;
-		private GroupBox toDisable;
+		private Button btClearTodo;
+		private Button btViewTodo;
+		private ToolTip toolTip1;
 	}
 	}

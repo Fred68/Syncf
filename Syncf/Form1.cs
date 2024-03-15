@@ -20,7 +20,7 @@ namespace Syncf
 
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
-		Control? taskCtrl = null;
+		List<Control> taskCtrl;
 		bool running = false;
 		bool closeRequest = false;
 
@@ -48,8 +48,9 @@ namespace Syncf
 			SuspendLayout();
 			par = new SyncfParams();
 
-			//usrName = cfgFile = lstFileNoExt = string.Empty;
-			//fls = FLS.None;
+			taskCtrl = new List<Control>();
+			taskCtrl.Add(gbComandi);
+			taskCtrl.Add(gbLog);
 
 			arguments = args;
 			AnalyseArgs(arguments);
@@ -96,7 +97,7 @@ namespace Syncf
 				FuncBkgnd? f = sf.SetStartFunction();
 				if(f != null)
 				{
-					taskCtrl = gbComandi;
+					//taskCtrl = gbComandi;
 					EseguiComando(f);
 				}
 			}
@@ -192,9 +193,9 @@ namespace Syncf
 		/// <param name="enabled"></param>
 		void EnableTaskCtrl(bool enabled)
 		{
-			if(taskCtrl != null)
+			foreach(Control c in taskCtrl)
 			{
-				taskCtrl.Enabled = enabled;
+				c.Enabled = enabled;
 			}
 		}
 
@@ -211,19 +212,19 @@ namespace Syncf
 			string msg;
 			if(s)
 			{
-				msg = "Operazione completata\r\n";
+				msg = "Operazione completata";
 			}
 			else
 			{
-				msg = "\r\nOperazione fallita o interrotta\r\n";
+				msg = "Operazione fallita o interrotta";
 			}
 
-			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning,1)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg, MSG.Warning, 1)));
 			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
 
 			if(closeRequest)
 			{
-				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...",MSG.Error,1)));
+				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...", MSG.Error, 1)));
 				Thread.Sleep(2000);
 				this.BeginInvoke(new Action(() => Close()));
 			}
@@ -346,10 +347,16 @@ namespace Syncf
 			strb.AppendLine("Informazioni sul programma" + System.Environment.NewLine);
 			try
 			{
-				//FileInfo fi = new FileInfo(Assembly.GetExecutingAssembly().Location);
-				strb.AppendLine("Versione: " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+				Assembly? assembly = Assembly.GetExecutingAssembly();
+				if(assembly != null)
+				{
+					//FileInfo fi = new FileInfo(Assembly.GetExecutingAssembly().Location);
+					System.Version? v = assembly.GetName().Version;
+					if(v != null) strb.AppendLine("Versione: " + v.ToString());
+					string? n = assembly.GetName().Name;
+					if(n != null) strb.AppendLine("Assembly name: " + n);
+				}
 				// strb.AppendLine("FullName: " + Assembly.GetEntryAssembly().GetName().FullName.ToString() + System.Environment.NewLine );
-				strb.AppendLine("Assembly name: " + Assembly.GetEntryAssembly().GetName().Name.ToString());
 				strb.AppendLine("Product name: " + Application.ProductName);
 				// strb.AppendLine("ProductVersion: " + Application.ProductVersion);
 				// strb.AppendLine("Startup path: " + Application.StartupPath);
@@ -453,7 +460,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				taskCtrl = gbComandi;
 				EseguiComando(sf.ReadFile);
 			}
 			else
@@ -466,7 +472,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				taskCtrl = gbComandi;
 				EseguiComando(sf.WriteFile);
 			}
 			else
@@ -479,7 +484,6 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				taskCtrl = gbComandi;
 				EseguiComando(sf.ReadWriteFile);
 			}
 			else
@@ -514,7 +518,38 @@ namespace Syncf
 			}
 		}
 
-		
+		private void btViewTodo_Click(object sender,EventArgs e)
+		{
+			if(File.Exists(sf.todoFile))
+			{
+				if(sf.GetExt(sf.todoFile) == ".txt")
+				{
+					Process.Start("explorer.exe",sf.todoFile);
+				}
+			}
+
+		}
+
+		private void btClearTodo_Click(object sender,EventArgs e)
+		{
+			if(File.Exists(sf.todoFile))
+			{
+				if(MessageBox.Show($"Cancellare la lista dei file da copiare:\r\n{sf.todoFile} ?","Cancellazione lista",MessageBoxButtons.OKCancel) == DialogResult.OK)
+				{
+					try
+					{
+						File.Delete(sf.todoFile);
+						sf.Log($"Cancellata lista: '{sf.todoFile}'");
+					}
+					catch(Exception ex)
+					{
+						MessageBox.Show($"Errore nella cancellazione della lista '{sf.logPath}'\r\n{ex.Message}");	
+					}
+				
+				}
+			}
+		}
+
 		#endregion
 	}
 }

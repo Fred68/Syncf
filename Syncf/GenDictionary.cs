@@ -70,7 +70,7 @@ namespace Fred68.GenDictionary
 		/// <param name="binder"></param>
 		/// <param name="result"></param>
 		/// <returns></returns>
-		public override bool TryGetMember(GetMemberBinder binder, out dynamic result)
+		public override bool TryGetMember(GetMemberBinder binder, out dynamic? result)
 			{
 			string key = binder.Name;
 			bool ok = true;
@@ -92,9 +92,9 @@ namespace Fred68.GenDictionary
 		/// <param name="binder"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public override bool TrySetMember(SetMemberBinder binder, object value)
+		public override bool TrySetMember(SetMemberBinder binder, object? value)
 			{
-			this[binder.Name] = value;
+			if(value != null)	this[binder.Name] = value;
 			return true;
 			}
 		#endif

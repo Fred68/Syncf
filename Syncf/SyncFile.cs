@@ -12,6 +12,7 @@ using System.IO;
 using Fred68.CfgReader;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Microsoft.VisualBasic.ApplicationServices;
 
 namespace Syncf
 {
@@ -30,6 +31,7 @@ namespace Syncf
 		bool enabled = false;				// true se non ci sono errori di configurazione
 		string busyFile = string.Empty;		// File busy
 		string logFile = string.Empty;		// File di log
+		string msgReadText = string.Empty;
 		StreamWriter? swLogFile = null;		// Streamwriter (oppure null)
 
 		#region PROPRIETA'
@@ -60,24 +62,8 @@ namespace Syncf
 				StringBuilder sb = new StringBuilder();
 				sb.AppendLine($"Cfg filename = {par.cfgFile}");
 				sb.AppendLine($"User: {par.usrName} [{stdUserName}]");
-				switch(par.fls)
-				{
-					case FLS.ALL:
-					{
-						sb.AppendLine($"Cerca tutti i file in '{cfg.origRoot}'");
-					}
-					break;
-					case FLS.ALL_LST:
-					{
-						sb.AppendLine($"Legge tutti i file indice '{cfg.indxF}' in '{cfg.logPath}'");
-					}
-					break;
-					case FLS.LST:
-					{
-						sb.AppendLine($"Legge il file indice '{par.lstFile}{cfg.indxF}' in '{cfg.logPath}'");
-					}
-					break;
-				}
+				sb.AppendLine(msgReadText);
+
 				if(cfg.extYes.Count == 0)
 				{
 					sb.AppendLine("Nessuna estensione da includere");
@@ -97,10 +83,18 @@ namespace Syncf
 		/// <summary>
 		/// Cartella di log
 		/// </summary>
-		public string logPath		{
+		public string logPath
+		{
 			get { return cfg.logPath; }
 		}
 
+		/// <summary>
+		/// File da copiare
+		/// </summary>
+		public string todoFile
+		{
+			get { return cfg.logPath + cfg.todoF; }
+		}
 		#endregion
 
 		/// <summary>
@@ -114,9 +108,11 @@ namespace Syncf
 
 			par.cfgFile = STD_CFG;
 			par.fmsg = p.fmsg;
+			
 			#if DEBUG
 			//MessageBox.Show(cfg.CHR_Ammessi);
 			#endif
+
 			par.usrName = stdUserName = par.lstFile = string.Empty;
 
 			par.fls = p.fls;
@@ -136,7 +132,7 @@ namespace Syncf
 			{
 				par.lstFile = p.lstFile;
 			}
-			else if(par.fls == FLS.None)					// Se non è specificato alcun file di lista...
+			else if(par.fls == FLS.None)				// Se non è specificato alcun file di lista...
 			{
 				par.lstFile = par.usrName;				// ...usa lo username
 				par.fls = FLS.LST;
@@ -157,6 +153,29 @@ namespace Syncf
 				}
 					
 			}
+
+			if(enabled)
+			{
+				switch(par.fls)
+				{
+					case FLS.ALL:
+					{
+						msgReadText = $"Cerca tutti i file in '{cfg.origRoot}'";
+					}
+					break;
+					case FLS.ALL_LST:
+					{
+						msgReadText = $"Legge tutti i file indice '{cfg.indxF}' in '{cfg.logPath}'";
+					}
+					break;
+					case FLS.LST:
+					{
+						msgReadText = $"Legge il file indice '{par.lstFile}{cfg.indxF}' in '{cfg.logPath}'";
+					}
+					break;
+				}
+			}
+
 			Log("Avvio programma",false);
 		}
 		
@@ -493,7 +512,7 @@ namespace Syncf
 		/// <param name="showMsg">Mostra nella finestra</param>
 		/// <returns></returns>
 
-		bool Log(string msg, bool showMsg = true)
+		public bool Log(string msg, bool showMsg = true)
 		{
 			bool ok = true;
 			if(swLogFile != null)
@@ -505,7 +524,7 @@ namespace Syncf
 				catch(Exception ex)
 				{
 					ok = false;
-					par.fmsg($"Errore nella scrittura del file di log '{logFile}'\r\n{ex.Message.ToString()}", MSG.Error);	
+					par.fmsg($"Errore nella scrittura del file di log '{logFile}'\r\n{ex.Message}", MSG.Error);	
 				}
 			}
 			else
@@ -560,7 +579,7 @@ namespace Syncf
 		/// </summary>
 		/// <param name="fullpath"></param>
 		/// <returns></returns>
-		string GetExt(ref readonly string? fullpath)
+		public string GetExt(ref readonly string? fullpath)
 		{
 			string ext = "";
 			if(fullpath != null)
@@ -666,10 +685,14 @@ namespace Syncf
 			List<string> lst = new List<string>();		
 
 			// Syncf -usr <user> -cfg <cfgfile> -lst <lstname> -all
-			if(par.fls == FLS.None)			//	Se: <lstname> è nullo, imposta il file <user>.lst e il flag a LST..
+
+			if(par.fls == FLS.None)			//	Se: <lstname> è nullo... 
 			{
-				par.lstFile = par.usrName;
-				par.fls = FLS.LST;
+				if(File.Exists(cfg.logPath + par.usrName + cfg.indxF))		// ...ed esiste il file <user>.lst...
+				{
+					par.lstFile = par.usrName;		// ...imposta il file <user>.lst e il flag a LST.
+					par.fls = FLS.LST;	
+				}
 			}
 			if(par.fls == FLS.ALL_LST)		// Se: <lstname> è *, il flag è ALL_LST...
 			{
@@ -707,7 +730,6 @@ namespace Syncf
 		/// <param name="token"></param>
 		/// <param name="intr"></param>
 		/// <returns></returns>
-		#warning FUNZIONE DA PROVARE
 		List<string> GetFiles(List<string> listFiles, CancellationToken token, out INTERRUZIONE intr)
 		{
 			List<string> lst = new List<string>();
@@ -766,7 +788,6 @@ namespace Syncf
 		/// <param name="token"></param>
 		/// <param name="intr"></param>
 		/// <returns></returns>
-		#warning FUNZIONE DA PROVARE
 		List<string> GetFiles(string origRoot, CancellationToken token, out INTERRUZIONE intr)
 		{	
 			List<string> lst = new List<string>();
@@ -787,9 +808,9 @@ namespace Syncf
 						foreach(string lFile in lFiles)
 						{
 							Thread.Sleep(1);	// Per catturare il token
-							if(FilterExt(lFile))
+							if(FilterExt(in lFile))
 							{
-								if(FilterMatch(lFile))
+								if(FilterMatch(in lFile))
 								{
 									lst.Add(lFile);
 								}
@@ -836,73 +857,61 @@ namespace Syncf
 		public bool ReadFile(CancellationToken token)
 		{
 			bool ok = false;
-			List<string> files;
+			List<string>? files = null;
 			INTERRUZIONE intr = INTERRUZIONE.None;
 
 			List<string> lstFiles = GetListFiles();
 
 			if(lstFiles.Count > 0)
 			{
-				files = GetFiles(lstFiles, token, out intr);	
+				files = GetFiles(lstFiles, token, out intr);
+				ok = true;
 			}
-			else
+			else if(par.fls == FLS.ALL)
 			{
 				files = GetFiles(cfg.origRoot, token, out intr);
+				ok = true;
+			}
+
+			if(files == null)
+			{
+				ok = false;
+				Log("Nessun file da leggere richiesto");
 			}
 
 			switch(intr)
 			{
 				case INTERRUZIONE.ERR:
 				{
-					Log("Errore durante la lettura dei file",true);
+					Log("Errore durante la lettura dei file");
 				}
 				break;
 				case INTERRUZIONE.TOKEN:
 				{
-					Log("Lettura dei file interrotta",true);
+					Log("Lettura dei file interrotta");
 				}
 				break;
 				default:
 				{
-					Log("Lettura dei file completata",true);
-					ok = true;
+					if(ok)	Log("Lettura dei file completata");
 				}
 				break;
 			}
-			StringBuilder sb = new StringBuilder();
-			foreach (string s in files)
+
+			if(ok)
 			{
-				sb.AppendLine(s);
-			}
-			//MessageBox.Show(sb.ToString());
-
-			#warning Al file todo.txt vanno aggiunte linee con AppendLine()
-			#warning Correggere dopo test
-			File.WriteAllText(cfg.logPath + cfg.todoF, sb.ToString());
-
-			#if false
-			string path, name, ext;
-			path = name = ext = string.Empty;
-
-			for(int i = 0;i < 30;i++)       // Esegue le operazioni
+				try
 				{
-					if(token.IsCancellationRequested)
-					{
-						ok = false;
-						break;          // Esce dal ciclo for
-					}
-					else
-					{
-						par.fmsg('R'+i.ToString(),MSG.Message);
-						Thread.Sleep(500);
-						if(i == 29)
-							{
-							par.fmsg("\r\n",MSG.Message);
-							ok = true;
-							}
-					}
+					File.AppendAllLines(todoFile, files);
+					Log($"Aggiornato {todoFile}");
 				}
-			#endif
+				catch (Exception ex)
+				{
+					ok = false;
+					par.fmsg($"Errore nella lettura dei file indice in '{cfg.logPath}'\r\n{ex.Message.ToString()}", MSG.Error);
+					Log($"Errore durante la scrittura su: {todoFile}",false);		
+				}
+			}
 
 			return ok;
 		}
