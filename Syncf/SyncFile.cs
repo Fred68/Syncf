@@ -18,7 +18,7 @@ namespace Syncf
 
 	public class SyncFile
 	{
-		public delegate void FuncMsg(string msg, MSG typ);
+		public delegate void FuncMsg(string msg, MSG typ, int newlines = 1);
 		public static string STD_CFG = "Syncf.cfg";
 		public static string INTERROTTO = "-> INCOMPLETO <-";
 		public static int MAXDEPTH = 32756;
@@ -105,6 +105,7 @@ namespace Syncf
 
 		/// <summary>
 		/// Ctor
+		/// Apre subito il file di log
 		/// </summary>	
 		public SyncFile(SyncfParams p)
 		{
@@ -170,15 +171,15 @@ namespace Syncf
 				case 0:
 					break;
 				case 1:
-					par.fmsg("\r\nAVVIO AUTOMATICO: lettura file\r\n",MSG.Message);
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura file",MSG.Message);
 					f = ReadFile;
 					break;
 				case 2:
-					par.fmsg("\r\nAVVIO AUTOMATICO: scrittura file\r\n",MSG.Message);
+					par.fmsg("\r\nAVVIO AUTOMATICO: scrittura file",MSG.Message);
 					f = WriteFile;
 					break;
 				case 3:
-					par.fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file\r\n",MSG.Message);
+					par.fmsg("\r\nAVVIO AUTOMATICO: lettura e scrittura file",MSG.Message);
 					f = ReadWriteFile;
 					break;
 				default:
@@ -700,6 +701,7 @@ namespace Syncf
 
 		/// <summary>
 		/// Lista dei file contenuti nei file elencati in ListFile
+		/// Non applica filtri
 		/// </summary>
 		/// <param name="listFiles"></param>
 		/// <param name="token"></param>
@@ -720,8 +722,10 @@ namespace Syncf
 					{
 						string? f;
 						sr = new StreamReader(file);
+						Log($"Lettura file indice: {file}",true);
 						while ((f = sr.ReadLine()) != null)
 						{
+							Thread.Sleep(1);	// Per catturare il token
 							lst.Add(f);
 							if(token.IsCancellationRequested)
 							{
@@ -754,12 +758,17 @@ namespace Syncf
 			return lst.Distinct().ToList();
 		}
 
-
+		/// <summary>
+		/// Lista dei file in una cartella e nelle sottocartelle
+		/// Applica i filtri
+		/// </summary>
+		/// <param name="origRoot"></param>
+		/// <param name="token"></param>
+		/// <param name="intr"></param>
+		/// <returns></returns>
 		#warning FUNZIONE DA PROVARE
 		List<string> GetFiles(string origRoot, CancellationToken token, out INTERRUZIONE intr)
-		{
-			
-
+		{	
 			List<string> lst = new List<string>();
 			intr = INTERRUZIONE.None;
 			string folder = "";
@@ -769,23 +778,25 @@ namespace Syncf
 			{
 				while(folders.Count > 0)
 				{
-					if(token.IsCancellationRequested)
-					{
-						throw new WorkingException(INTERROTTO);
-					}
 					Tuple<string,int> foldDpt = folders.Pop();
+					Log($"Lettura cartella: {foldDpt.Item1}",true);
 					string[] lFiles = Directory.GetFiles(foldDpt.Item1);
 					string[] lFolders = Directory.GetDirectories(foldDpt.Item1);
 					if(foldDpt.Item2 <= cfg.maxDepth)
 					{
 						foreach(string lFile in lFiles)
 						{
+							Thread.Sleep(1);	// Per catturare il token
 							if(FilterExt(lFile))
 							{
 								if(FilterMatch(lFile))
 								{
 									lst.Add(lFile);
 								}
+							}
+							if(token.IsCancellationRequested)
+							{
+								throw new WorkingException(INTERROTTO);
 							}
 						}
 						foreach(string lFolder in lFolders)
@@ -809,14 +820,12 @@ namespace Syncf
 				}
 
 			}
-
 			return lst.Distinct().ToList();
 		}
 
-
 		#warning Aggiungere cfg: cancella i file indice dopo l'uso
 		#warning Aggiungere cfg: file indice 'non copiati'
-		#warning Modificare cfg: origRoot e destRoot devono essere array della stessa dimensione
+		#warning Modificare cfg: origRoot e destRoot array stessa dimensione: no, dovrei differenziare i filtri. Usare vari file .cfg.
 		#warning Aggiungere Log() nei punti significativi
 
 		/// <summary>
@@ -828,19 +837,12 @@ namespace Syncf
 		{
 			bool ok = false;
 			List<string> files;
-			INTERRUZIONE intr;
-
-			#warning Aprire il file di log.
-			#warning Salvare operazioni ed errori nel file di log.
+			INTERRUZIONE intr = INTERRUZIONE.None;
 
 			List<string> lstFiles = GetListFiles();
 
-			#warning ELIMINARE DOPO TEST
-			lstFiles.Clear();
-
 			if(lstFiles.Count > 0)
 			{
-				//Log(
 				files = GetFiles(lstFiles, token, out intr);	
 			}
 			else
@@ -848,15 +850,32 @@ namespace Syncf
 				files = GetFiles(cfg.origRoot, token, out intr);
 			}
 
-			#warning Chiudere il file di log con data, ora, utente
-			
-
+			switch(intr)
+			{
+				case INTERRUZIONE.ERR:
+				{
+					Log("Errore durante la lettura dei file",true);
+				}
+				break;
+				case INTERRUZIONE.TOKEN:
+				{
+					Log("Lettura dei file interrotta",true);
+				}
+				break;
+				default:
+				{
+					Log("Lettura dei file completata",true);
+					ok = true;
+				}
+				break;
+			}
 			StringBuilder sb = new StringBuilder();
 			foreach (string s in files)
 			{
 				sb.AppendLine(s);
 			}
 			//MessageBox.Show(sb.ToString());
+
 			#warning Al file todo.txt vanno aggiunte linee con AppendLine()
 			#warning Correggere dopo test
 			File.WriteAllText(cfg.logPath + cfg.todoF, sb.ToString());

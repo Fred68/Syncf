@@ -52,7 +52,7 @@ namespace Syncf
 			//fls = FLS.None;
 
 			arguments = args;
-			AnalyseArgs(args);
+			AnalyseArgs(arguments);
 			par.fmsg = AddMessageAltTask;
 			// Spostato sf = new SyncFile(par) in Form1_Load(), dopo creazione della finestra principale
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
@@ -74,6 +74,12 @@ namespace Syncf
 		{
 			SuspendLayout();
 			sf = new SyncFile(par);
+			rtbMsg.AppendText("\r\n");
+			rtbMsg.AppendText("args[]=");
+			for(int i = 1;i < arguments.Length;i++)
+			{
+				rtbMsg.AppendText($" {arguments[i]}");
+			}
 			rtbMsg.AppendText("\r\n");
 			string msg = sf.msgConfiguration;
 			rtbMsg.AppendText(msg);          //MessageBox.Show(msg);
@@ -108,14 +114,15 @@ namespace Syncf
 		/// '\n' esegue scroll
 		/// </summary>
 		/// <param name="msg"></param>
-		private void AddMessage(string msg,MSG typ = MSG.Message)
+		private void AddMessage(string msg,MSG typ = MSG.Message,int newlines = 1)
 		{
 			int start = rtbMsg.TextLength;
 			rtbMsg.AppendText(msg);
+			if(newlines > 0) rtbMsg.AppendText(new string('\n',newlines));
 			rtbMsg.Select(start,msg.Length);
 			rtbMsg.SelectionColor = sf.txtCol[(int)typ];
 
-			if(msg.Contains('\n'))
+			if(newlines > 0)    // Era: msg.Contains('\n')
 			{
 				rtbMsg.SelectionStart = rtbMsg.Text.Length;
 				rtbMsg.ScrollToCaret();
@@ -129,9 +136,9 @@ namespace Syncf
 		/// ...chiamata da task differente dal quello principale (UI)
 		/// </summary>
 		/// <param name="msg"></param>
-		public void AddMessageAltTask(string msg,MSG typ)
+		public void AddMessageAltTask(string msg,MSG typ,int newlines)
 		{
-			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,typ)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,typ,newlines)));
 		}
 
 		/// <summary>
@@ -211,12 +218,12 @@ namespace Syncf
 				msg = "\r\nOperazione fallita o interrotta\r\n";
 			}
 
-			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning,1)));
 			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
 
 			if(closeRequest)
 			{
-				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...",MSG.Error)));
+				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...",MSG.Error,1)));
 				Thread.Sleep(2000);
 				this.BeginInvoke(new Action(() => Close()));
 			}
@@ -414,7 +421,7 @@ namespace Syncf
 			if(!closeRequest)   // Chiede conferma, se non c'è già una richiesta di chiusura
 			{
 				string msg = (running ? "Operazione in corso...\r\n\r\n" : "") + "Uscire ?";
-				if(MessageBox.Show(msg, "Confermare chiusura programma", MessageBoxButtons.OKCancel) != DialogResult.OK)
+				if(MessageBox.Show(msg,"Confermare chiusura programma",MessageBoxButtons.OKCancel) != DialogResult.OK)
 				{
 					e.Cancel = true;
 				}
@@ -427,7 +434,7 @@ namespace Syncf
 					e.Cancel = true;            // Annulla chiusura
 					closeRequest = true;        // Richiede chiusura al termine del task
 					StopTask();                 // Richiede arresto del task
-					AddMessage("\r\nArresto operazione in corso...\r\n",MSG.Error);
+					AddMessage("\r\nArresto operazione in corso...\r\n",MSG.Error,1);
 				}
 				else
 				{               // ...se nessun task, prosegue con la chiusura
@@ -494,38 +501,20 @@ namespace Syncf
 			e.Cancel = true;
 			MessageBox.Show(Version());
 		}
+
 		private void btLogFolder_Click(object sender,EventArgs e)
 		{
 			if(Directory.Exists(sf.logPath))
 			{
-				Process.Start("explorer.exe" , sf.logPath);
+				Process.Start("explorer.exe",sf.logPath);
 			}
 			else
 			{
-			MessageBox.Show($"Cartella di log '{sf.logPath}' non trovata.");
+				MessageBox.Show($"Cartella di log '{sf.logPath}' non trovata.");
 			}
 		}
 
+		
 		#endregion
-
-		private void btTest_Click(object sender,EventArgs e)
-		{
-#if false
-			string txt = tbTest.Text;
-			bool x;
-			StringBuilder sb = new StringBuilder();
-
-			x = sf.FilterExt(in txt);
-			sb.AppendLine("Extension: " + (x ? "yes" : "no"));
-			
-			x = sf.FilterMatch(in txt);
-			sb.AppendLine("Match: " + (x ? "yes" : "no"));
-
-			MessageBox.Show(sb.ToString());	
-#endif
-
-		}
-
-
 	}
 }

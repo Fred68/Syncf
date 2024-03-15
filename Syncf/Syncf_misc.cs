@@ -34,7 +34,7 @@ namespace Syncf
 
 		public SyncfParams()
 		{
-			this.fmsg = (string s,MSG t) => {};	// Delegate che non fa nulla
+			this.fmsg = (string s,MSG t,int n) => {};	// Delegate che non fa nulla
 			this.usrName = this.cfgFile	= cfgFile = this.lstFile = string.Empty;
 			this.fls = FLS.None;
 			this.noFilterLst = false;
