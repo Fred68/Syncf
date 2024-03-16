@@ -22,7 +22,8 @@ namespace Syncf
 		public delegate void FuncMsg(string msg, MSG typ, int newlines = 1);
 		public static string STD_CFG = "Syncf.cfg";
 		public static string INTERROTTO = "-> INCOMPLETO <-";
-		public static int MAXDEPTH = 32756;
+		public static int MAXDEPTH = 1024;
+		public static string TMP = ".tmp";
 		public Color[] txtCol = {Color.Black, Color.Blue, Color.Red};
 
 		SyncfParams par;
@@ -39,7 +40,7 @@ namespace Syncf
 		/// <summary>
 		/// Comandi abilitati, nessun errore d configurazione
 		/// </summary>
-		public bool isEnabled
+		public bool IsEnabled
 		{
 			get { return enabled; }
 		}
@@ -47,7 +48,7 @@ namespace Syncf
 		/// <summary>
 		/// Delegate per visualizzare i messaggi del task principale
 		/// </summary>
-		public FuncMsg? funcMessage
+		public FuncMsg? FuncMessage
 		{
 			get {return par.fmsg;}
 		}
@@ -55,7 +56,7 @@ namespace Syncf
 		/// <summary>
 		/// Messaggio con la configurazione
 		/// </summary>
-		public string msgConfiguration
+		public string MsgConfiguration
 		{
 			get
 			{
@@ -83,15 +84,23 @@ namespace Syncf
 		/// <summary>
 		/// Cartella di log
 		/// </summary>
-		public string logPath
+		public string LogPath
 		{
 			get { return cfg.logPath; }
 		}
 
 		/// <summary>
+		/// File di log
+		/// </summary>
+		public string LogFile
+		{
+			get { return logFile; }
+		}
+
+		/// <summary>
 		/// File da copiare
 		/// </summary>
-		public string todoFile
+		public string TodoFile
 		{
 			get { return cfg.logPath + cfg.todoF; }
 		}
@@ -848,6 +857,72 @@ namespace Syncf
 		#warning Aggiungere cfg: file indice 'non copiati'
 		#warning Modificare cfg: origRoot e destRoot array stessa dimensione: no, dovrei differenziare i filtri. Usare vari file .cfg.
 		#warning Aggiungere Log() nei punti significativi
+		#warning Togliere parte iniziale del path di origine prima della scrittura
+
+		/// <summary>
+		/// Rimuove duplicati dalla lista
+		/// </summary>
+		/// <param name="file"></param>
+		/// <param name="token"></param>
+		/// <param name="intr"></param>
+		/// <returns></returns>
+		bool RemoveDuplicatesFromTxtFile(string file, CancellationToken token, out INTERRUZIONE intr)
+		{
+			bool ok = false;
+			intr = INTERRUZIONE.None;
+			StreamReader? sr = null;
+			List<string> lst = new List<string>();
+			string path, name, ext;
+
+			try
+			{
+				if(File.Exists(file) && DividePath(ref file, out path, out name, out ext))
+				{
+					string? f;
+					sr = new StreamReader(file);
+					while ((f = sr.ReadLine()) != null)
+					{
+						Thread.Sleep(1);	// Per catturare il token
+						lst.Add(f);
+						if(token.IsCancellationRequested)
+						{
+							throw new WorkingException(INTERROTTO);
+						}
+					}
+					sr.Close();
+
+					string tmp = path+name+TMP;
+
+					lst = lst.Distinct().ToList();
+					File.WriteAllLines(tmp, lst);
+					File.Delete(file);
+					File.Move(tmp, file);
+					Log($"Eliminati duplicati in {file}", true);
+					ok = true;
+				}
+			}
+			catch(Exception ex)
+			{
+				if(sr != null)
+				{
+					sr.Close();
+				}
+
+				if(ex is WorkingException)
+				{
+					par.fmsg($"Operazione interrotta", MSG.Warning);
+					Log($"Interrotta rimozione duplicati in {file}", false);
+					intr = INTERRUZIONE.TOKEN;
+				}
+				else
+				{
+					par.fmsg($"Errore durante la rimozione dei duplicati in '{file}'\r\n{ex.Message.ToString()}", MSG.Error);
+					Log($"Errore durante la rimozione dei duplicati in {file}", false);
+					intr = INTERRUZIONE.ERR;
+				}
+			}
+			return ok;
+		}
 
 		/// <summary>
 		/// DA COMPLETARE
@@ -898,20 +973,30 @@ namespace Syncf
 				break;
 			}
 
-			if(ok)
+			if(ok && (files != null))
 			{
 				try
 				{
-					File.AppendAllLines(todoFile, files);
-					Log($"Aggiornato {todoFile}");
+					File.AppendAllLines(TodoFile, files);
+					Log($"Aggiornato {TodoFile}");
 				}
 				catch (Exception ex)
 				{
 					ok = false;
 					par.fmsg($"Errore nella lettura dei file indice in '{cfg.logPath}'\r\n{ex.Message.ToString()}", MSG.Error);
-					Log($"Errore durante la scrittura su: {todoFile}",false);		
+					Log($"Errore durante la scrittura su: {TodoFile}", false);		
 				}
 			}
+
+			return ok;
+		}
+
+		public bool RemoveTodoDuplicates(CancellationToken token)
+		{
+			bool ok = false;
+			INTERRUZIONE intr = INTERRUZIONE.None;
+
+			ok = RemoveDuplicatesFromTxtFile(TodoFile, token, out intr);
 
 			return ok;
 		}
@@ -926,6 +1011,9 @@ namespace Syncf
 		public bool WriteFile(CancellationToken token)
 		{
 			bool ok = false;
+
+			ok = RemoveTodoDuplicates(token);
+
 			for(int i = 0;i < 10;i++)       // Esegue le operazioni
 			{
 				if(token.IsCancellationRequested)

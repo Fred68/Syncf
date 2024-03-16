@@ -34,7 +34,6 @@
 			btReadWrite = new Button();
 			btExit = new Button();
 			gbComandi = new GroupBox();
-			btClearTodo = new Button();
 			btViewTodo = new Button();
 			btClearLog = new Button();
 			btStop = new Button();
@@ -46,10 +45,27 @@
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
 			refreshTimer = new System.Windows.Forms.Timer(components);
 			toolTip1 = new ToolTip(components);
+			menuStrip1 = new MenuStrip();
+			fileToolStripMenuItem = new ToolStripMenuItem();
+			leggiToolStripMenuItem = new ToolStripMenuItem();
+			scriviToolStripMenuItem = new ToolStripMenuItem();
+			leggiEScriviToolStripMenuItem = new ToolStripMenuItem();
+			esciToolStripMenuItem = new ToolStripMenuItem();
+			listaToolStripMenuItem = new ToolStripMenuItem();
+			vediListaToolStripMenuItem = new ToolStripMenuItem();
+			eliminaDuplicatiToolStripMenuItem = new ToolStripMenuItem();
+			cancellaListaToolStripMenuItem = new ToolStripMenuItem();
+			logToolStripMenuItem = new ToolStripMenuItem();
+			vediLogToolStripMenuItem = new ToolStripMenuItem();
+			cartellaDiLogToolStripMenuItem = new ToolStripMenuItem();
+			cancellaLogToolStripMenuItem = new ToolStripMenuItem();
+			toolStripMenuItem1 = new ToolStripMenuItem();
+			aboutToolStripMenuItem = new ToolStripMenuItem();
 			gbComandi.SuspendLayout();
 			panel1.SuspendLayout();
 			gbLog.SuspendLayout();
 			statusStrip1.SuspendLayout();
+			menuStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btRead
@@ -94,27 +110,16 @@
 			// 
 			// gbComandi
 			// 
-			gbComandi.Controls.Add(btClearTodo);
 			gbComandi.Controls.Add(btViewTodo);
 			gbComandi.Controls.Add(btReadWrite);
 			gbComandi.Controls.Add(btWrite);
 			gbComandi.Controls.Add(btRead);
 			gbComandi.Location = new Point(12,12);
 			gbComandi.Name = "gbComandi";
-			gbComandi.Size = new Size(149,197);
+			gbComandi.Size = new Size(149,160);
 			gbComandi.TabIndex = 5;
 			gbComandi.TabStop = false;
 			gbComandi.Text = "Comandi";
-			// 
-			// btClearTodo
-			// 
-			btClearTodo.Location = new Point(20,154);
-			btClearTodo.Name = "btClearTodo";
-			btClearTodo.Size = new Size(110,27);
-			btClearTodo.TabIndex = 5;
-			btClearTodo.Text = "Azzera lista";
-			btClearTodo.UseVisualStyleBackColor = true;
-			btClearTodo.Click += btClearTodo_Click;
 			// 
 			// btViewTodo
 			// 
@@ -132,9 +137,9 @@
 			btClearLog.Name = "btClearLog";
 			btClearLog.Size = new Size(110,27);
 			btClearLog.TabIndex = 4;
-			btClearLog.Text = "Cancella log";
+			btClearLog.Text = "Vedi log";
 			btClearLog.UseVisualStyleBackColor = true;
-			btClearLog.Click += btClearLog_Click;
+			btClearLog.Click += vediLogToolStripMenuItem_Click;
 			// 
 			// btStop
 			// 
@@ -167,8 +172,7 @@
 			panel1.Controls.Add(rtbMsg);
 			panel1.Controls.Add(btExit);
 			panel1.Controls.Add(btStop);
-			panel1.Dock = DockStyle.Top;
-			panel1.Location = new Point(0,0);
+			panel1.Location = new Point(0,25);
 			panel1.Name = "panel1";
 			panel1.Size = new Size(553,400);
 			panel1.TabIndex = 7;
@@ -177,7 +181,7 @@
 			// 
 			gbLog.Controls.Add(btClearLog);
 			gbLog.Controls.Add(btLogFolder);
-			gbLog.Location = new Point(12,215);
+			gbLog.Location = new Point(12,178);
 			gbLog.Name = "gbLog";
 			gbLog.Size = new Size(149,100);
 			gbLog.TabIndex = 11;
@@ -197,7 +201,7 @@
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0,433);
+			statusStrip1.Location = new Point(0,451);
 			statusStrip1.Name = "statusStrip1";
 			statusStrip1.Size = new Size(553,22);
 			statusStrip1.TabIndex = 8;
@@ -214,14 +218,129 @@
 			// 
 			refreshTimer.Tick += refreshTimer_Tick;
 			// 
+			// menuStrip1
+			// 
+			menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem,listaToolStripMenuItem,logToolStripMenuItem,toolStripMenuItem1 });
+			menuStrip1.Location = new Point(0,0);
+			menuStrip1.Name = "menuStrip1";
+			menuStrip1.Size = new Size(553,24);
+			menuStrip1.TabIndex = 9;
+			menuStrip1.Text = "menuStrip1";
+			// 
+			// fileToolStripMenuItem
+			// 
+			fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { leggiToolStripMenuItem,scriviToolStripMenuItem,leggiEScriviToolStripMenuItem,esciToolStripMenuItem });
+			fileToolStripMenuItem.Name = "fileToolStripMenuItem";
+			fileToolStripMenuItem.Size = new Size(37,20);
+			fileToolStripMenuItem.Text = "File";
+			// 
+			// leggiToolStripMenuItem
+			// 
+			leggiToolStripMenuItem.Name = "leggiToolStripMenuItem";
+			leggiToolStripMenuItem.Size = new Size(142,22);
+			leggiToolStripMenuItem.Text = "Leggi";
+			leggiToolStripMenuItem.Click += btRead_Click;
+			// 
+			// scriviToolStripMenuItem
+			// 
+			scriviToolStripMenuItem.Name = "scriviToolStripMenuItem";
+			scriviToolStripMenuItem.Size = new Size(142,22);
+			scriviToolStripMenuItem.Text = "Scrivi";
+			scriviToolStripMenuItem.Click += btWrite_Click;
+			// 
+			// leggiEScriviToolStripMenuItem
+			// 
+			leggiEScriviToolStripMenuItem.Name = "leggiEScriviToolStripMenuItem";
+			leggiEScriviToolStripMenuItem.Size = new Size(142,22);
+			leggiEScriviToolStripMenuItem.Text = "Leggi e scrivi";
+			leggiEScriviToolStripMenuItem.Click += btReadWrite_Click;
+			// 
+			// esciToolStripMenuItem
+			// 
+			esciToolStripMenuItem.Name = "esciToolStripMenuItem";
+			esciToolStripMenuItem.Size = new Size(142,22);
+			esciToolStripMenuItem.Text = "Esci";
+			esciToolStripMenuItem.Click += btExit_Click;
+			// 
+			// listaToolStripMenuItem
+			// 
+			listaToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { vediListaToolStripMenuItem,eliminaDuplicatiToolStripMenuItem,cancellaListaToolStripMenuItem });
+			listaToolStripMenuItem.Name = "listaToolStripMenuItem";
+			listaToolStripMenuItem.Size = new Size(43,20);
+			listaToolStripMenuItem.Text = "Lista";
+			// 
+			// vediListaToolStripMenuItem
+			// 
+			vediListaToolStripMenuItem.Name = "vediListaToolStripMenuItem";
+			vediListaToolStripMenuItem.Size = new Size(180,22);
+			vediListaToolStripMenuItem.Text = "Vedi lista";
+			vediListaToolStripMenuItem.Click += btViewTodo_Click;
+			// 
+			// eliminaDuplicatiToolStripMenuItem
+			// 
+			eliminaDuplicatiToolStripMenuItem.Name = "eliminaDuplicatiToolStripMenuItem";
+			eliminaDuplicatiToolStripMenuItem.Size = new Size(180,22);
+			eliminaDuplicatiToolStripMenuItem.Text = "Elimina duplicati";
+			eliminaDuplicatiToolStripMenuItem.Click += eliminaDuplicatiToolStripMenuItem_Click;
+			// 
+			// cancellaListaToolStripMenuItem
+			// 
+			cancellaListaToolStripMenuItem.Name = "cancellaListaToolStripMenuItem";
+			cancellaListaToolStripMenuItem.Size = new Size(180,22);
+			cancellaListaToolStripMenuItem.Text = "Azzera lista";
+			cancellaListaToolStripMenuItem.Click += btClearTodo_Click;
+			// 
+			// logToolStripMenuItem
+			// 
+			logToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { vediLogToolStripMenuItem,cartellaDiLogToolStripMenuItem,cancellaLogToolStripMenuItem });
+			logToolStripMenuItem.Name = "logToolStripMenuItem";
+			logToolStripMenuItem.Size = new Size(39,20);
+			logToolStripMenuItem.Text = "Log";
+			// 
+			// vediLogToolStripMenuItem
+			// 
+			vediLogToolStripMenuItem.Name = "vediLogToolStripMenuItem";
+			vediLogToolStripMenuItem.Size = new Size(180,22);
+			vediLogToolStripMenuItem.Text = "Vedi log";
+			vediLogToolStripMenuItem.Click += vediLogToolStripMenuItem_Click;
+			// 
+			// cartellaDiLogToolStripMenuItem
+			// 
+			cartellaDiLogToolStripMenuItem.Name = "cartellaDiLogToolStripMenuItem";
+			cartellaDiLogToolStripMenuItem.Size = new Size(180,22);
+			cartellaDiLogToolStripMenuItem.Text = "Cartella di log";
+			cartellaDiLogToolStripMenuItem.Click += btLogFolder_Click;
+			// 
+			// cancellaLogToolStripMenuItem
+			// 
+			cancellaLogToolStripMenuItem.Name = "cancellaLogToolStripMenuItem";
+			cancellaLogToolStripMenuItem.Size = new Size(180,22);
+			cancellaLogToolStripMenuItem.Text = "Azzera log";
+			cancellaLogToolStripMenuItem.Click += btClearLog_Click;
+			// 
+			// toolStripMenuItem1
+			// 
+			toolStripMenuItem1.DropDownItems.AddRange(new ToolStripItem[] { aboutToolStripMenuItem });
+			toolStripMenuItem1.Name = "toolStripMenuItem1";
+			toolStripMenuItem1.Size = new Size(24,20);
+			toolStripMenuItem1.Text = "?";
+			// 
+			// aboutToolStripMenuItem
+			// 
+			aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+			aboutToolStripMenuItem.Size = new Size(107,22);
+			aboutToolStripMenuItem.Text = "About";
+			aboutToolStripMenuItem.Click += aboutToolStripMenuItem_Click;
+			// 
 			// Form1
 			// 
 			AutoScaleDimensions = new SizeF(7F,15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(553,455);
+			ClientSize = new Size(553,473);
 			Controls.Add(statusStrip1);
+			Controls.Add(menuStrip1);
 			Controls.Add(panel1);
-			HelpButton = true;
+			MainMenuStrip = menuStrip1;
 			MaximizeBox = false;
 			MinimizeBox = false;
 			Name = "Form1";
@@ -233,6 +352,8 @@
 			gbLog.ResumeLayout(false);
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
+			menuStrip1.ResumeLayout(false);
+			menuStrip1.PerformLayout();
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -252,8 +373,23 @@
 		private Button btClearLog;
 		private GroupBox gbLog;
 		private Button btLogFolder;
-		private Button btClearTodo;
 		private Button btViewTodo;
 		private ToolTip toolTip1;
+		private MenuStrip menuStrip1;
+		private ToolStripMenuItem fileToolStripMenuItem;
+		private ToolStripMenuItem leggiToolStripMenuItem;
+		private ToolStripMenuItem scriviToolStripMenuItem;
+		private ToolStripMenuItem leggiEScriviToolStripMenuItem;
+		private ToolStripMenuItem esciToolStripMenuItem;
+		private ToolStripMenuItem toolStripMenuItem1;
+		private ToolStripMenuItem aboutToolStripMenuItem;
+		private ToolStripMenuItem listaToolStripMenuItem;
+		private ToolStripMenuItem vediListaToolStripMenuItem;
+		private ToolStripMenuItem eliminaDuplicatiToolStripMenuItem;
+		private ToolStripMenuItem cancellaListaToolStripMenuItem;
+		private ToolStripMenuItem logToolStripMenuItem;
+		private ToolStripMenuItem cartellaDiLogToolStripMenuItem;
+		private ToolStripMenuItem cancellaLogToolStripMenuItem;
+		private ToolStripMenuItem vediLogToolStripMenuItem;
 	}
 	}

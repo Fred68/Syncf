@@ -82,7 +82,7 @@ namespace Syncf
 				rtbMsg.AppendText($" {arguments[i]}");
 			}
 			rtbMsg.AppendText("\r\n");
-			string msg = sf.msgConfiguration;
+			string msg = sf.MsgConfiguration;
 			rtbMsg.AppendText(msg);          //MessageBox.Show(msg);
 			rtbMsg.SelectionLength = 0;      // Deseleziona
 
@@ -92,7 +92,7 @@ namespace Syncf
 			ResumeLayout(false);
 			PerformLayout();
 
-			if(sf.isEnabled)
+			if(sf.IsEnabled)
 			{
 				FuncBkgnd? f = sf.SetStartFunction();
 				if(f != null)
@@ -219,12 +219,12 @@ namespace Syncf
 				msg = "Operazione fallita o interrotta";
 			}
 
-			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg, MSG.Warning, 1)));
+			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning,1)));
 			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
 
 			if(closeRequest)
 			{
-				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...", MSG.Error, 1)));
+				rtbMsg.BeginInvoke(new Action(() => AddMessage("Task arrestato, chiusura programma...",MSG.Error,1)));
 				Thread.Sleep(2000);
 				this.BeginInvoke(new Action(() => Close()));
 			}
@@ -411,7 +411,7 @@ namespace Syncf
 			return strb.ToString();
 		}
 
-		#region HANDLERS
+		#region EVENT HANDLERS
 
 		private void refreshTimer_Tick(object sender,EventArgs e)
 		{
@@ -496,7 +496,10 @@ namespace Syncf
 		{
 			if(MessageBox.Show("Cancellare il file di log ?","Cancellazione log",MessageBoxButtons.OKCancel) == DialogResult.OK)
 			{
-				sf.ClearLog();
+				if(!running)
+				{
+					sf.ClearLog();
+				}
 			}
 		}
 
@@ -508,23 +511,26 @@ namespace Syncf
 
 		private void btLogFolder_Click(object sender,EventArgs e)
 		{
-			if(Directory.Exists(sf.logPath))
+			if(Directory.Exists(sf.LogPath))
 			{
-				Process.Start("explorer.exe",sf.logPath);
+				Process.Start("explorer.exe",sf.LogPath);
 			}
 			else
 			{
-				MessageBox.Show($"Cartella di log '{sf.logPath}' non trovata.");
+				MessageBox.Show($"Cartella di log '{sf.LogPath}' non trovata.");
 			}
 		}
 
 		private void btViewTodo_Click(object sender,EventArgs e)
 		{
-			if(File.Exists(sf.todoFile))
+			if(!running)
 			{
-				if(sf.GetExt(sf.todoFile) == ".txt")
+				if(File.Exists(sf.TodoFile))
 				{
-					Process.Start("explorer.exe",sf.todoFile);
+					if(sf.GetExt(sf.TodoFile) == ".txt")
+					{
+						Process.Start("explorer.exe",sf.TodoFile);
+					}
 				}
 			}
 
@@ -532,24 +538,59 @@ namespace Syncf
 
 		private void btClearTodo_Click(object sender,EventArgs e)
 		{
-			if(File.Exists(sf.todoFile))
+			if(!running)
 			{
-				if(MessageBox.Show($"Cancellare la lista dei file da copiare:\r\n{sf.todoFile} ?","Cancellazione lista",MessageBoxButtons.OKCancel) == DialogResult.OK)
+				if(File.Exists(sf.TodoFile))
 				{
-					try
+					if(MessageBox.Show($"Cancellare la lista dei file da copiare:\r\n{sf.TodoFile} ?","Cancellazione lista",MessageBoxButtons.OKCancel) == DialogResult.OK)
 					{
-						File.Delete(sf.todoFile);
-						sf.Log($"Cancellata lista: '{sf.todoFile}'");
+						try
+						{
+							File.Delete(sf.TodoFile);
+							sf.Log($"Cancellata lista: '{sf.TodoFile}'");
+						}
+						catch(Exception ex)
+						{
+							MessageBox.Show($"Errore nella cancellazione della lista '{sf.LogPath}'\r\n{ex.Message}");
+						}
+
 					}
-					catch(Exception ex)
-					{
-						MessageBox.Show($"Errore nella cancellazione della lista '{sf.logPath}'\r\n{ex.Message}");	
-					}
-				
 				}
 			}
 		}
 
+		private void aboutToolStripMenuItem_Click(object sender,EventArgs e)
+		{
+			MessageBox.Show(Version());
+		}
+
+
+		private void eliminaDuplicatiToolStripMenuItem_Click(object sender,EventArgs e)
+		{
+			if(!running)
+			{
+				EseguiComando(sf.RemoveTodoDuplicates);
+			}
+			else
+			{
+				MessageBox.Show("Operazione in corso");
+			}
+		}
+
 		#endregion
+
+		private void vediLogToolStripMenuItem_Click(object sender,EventArgs e)
+		{
+			if(!running)
+			{
+				if(File.Exists(sf.LogFile))
+				{
+					if(sf.GetExt(sf.LogFile) == ".txt")
+					{
+						Process.Start("explorer.exe",sf.LogFile);
+					}
+				}
+			}
+		}
 	}
 }
