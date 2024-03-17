@@ -35,6 +35,24 @@ namespace Syncf
 		string msgReadText = string.Empty;
 		StreamWriter? swLogFile = null;		// Streamwriter (oppure null)
 
+		class filePair
+		{
+			string orig {get; set;}
+			string dest {get; set;}
+			bool move {get; set;}	
+			public filePair()
+			{
+				orig = dest = string.Empty;
+				move = false;
+			}
+			public filePair(string origin, string destination, bool removeOrig = false)
+			{
+				orig = origin;
+				dest = destination;
+				move = removeOrig;
+			}
+		}
+
 		#region PROPRIETA'
 		
 		/// <summary>
@@ -258,6 +276,8 @@ namespace Syncf
 				iTmp = cfg.maxDepth;
 				sTmp = cfg.redoF;	
 				bTmp = cfg.clearLst;
+				bTmp = cfg.delOrig;
+				sTmp = cfg.missF;
 
 				if(txtCol.Length != (int)MSG.None)	throw new Exception("Color[] txtCol and enum MSG hanno lunghezze differenti");
 
@@ -653,6 +673,34 @@ namespace Syncf
 			return yes;
 		}
 
+		bool GetDestinationFileName(ref readonly string fullpath, out String destPath)
+		{
+			bool ok = false;	
+			destPath = "";
+			if((fullpath != null) && (fullpath != string.Empty))
+			{
+				int pos = fullpath.IndexOf(cfg.origRoot,StringComparison.InvariantCultureIgnoreCase);
+				if(pos == 0)
+				{
+					destPath = cfg.destRoot + fullpath.Substring(cfg.origRoot.Length);
+					ok = true;
+				}
+				else if(pos == -1)
+				{
+					par.fmsg($"Path non trovato in '{fullpath}'", MSG.Error);
+					Log($"Errore: path '{cfg.origRoot}' non trovato in '{fullpath}'", false);
+				}
+				else
+				{
+					par.fmsg($"Path non all'inizio di '{fullpath}'", MSG.Error);
+					Log($"Errore: path '{cfg.origRoot}' non all'inizio di '{fullpath}'", false);
+
+				}
+			}
+			return ok;
+		}
+
+
 		/// <summary>
 		/// Filtra in base alle stringhe di confronto
 		/// Controlla prima matchYes, poi matchNo
@@ -853,26 +901,36 @@ namespace Syncf
 			return lst.Distinct().ToList();
 		}
 
-		#warning Aggiungere cfg: cancella i file indice dopo l'uso
-		#warning Aggiungere cfg: file indice 'non copiati'
-		#warning Modificare cfg: origRoot e destRoot array stessa dimensione: no, dovrei differenziare i filtri. Usare vari file .cfg.
+		#warning Nota: per cartelle multiple, usare file .cfg distinti.
 		#warning Aggiungere Log() nei punti significativi
-		#warning Togliere parte iniziale del path di origine prima della scrittura
+	
+		///// <summary>
+		///// Rimuove le righe duplicate in file
+		///// </summary>
+		///// <param name="file"></param>
+		///// <param name="token"></param>
+		///// <param name="intr"></param>
+		///// <returns></returns>
+		///// 
 
 		/// <summary>
-		/// Rimuove duplicati dalla lista
+		/// Rimuove le righe duplicate in file
+		/// Sovrascrive il file originario, se richiesto...
+		/// ...oppure crea file temporaneo (e mette il nome in file)
 		/// </summary>
 		/// <param name="file"></param>
+		/// <param name="overwrite">sovrascrive 'file', se false crea</param>
 		/// <param name="token"></param>
 		/// <param name="intr"></param>
 		/// <returns></returns>
-		bool RemoveDuplicatesFromTxtFile(string file, CancellationToken token, out INTERRUZIONE intr)
+		bool RemoveDuplicatesFromTxtFile(string file, bool overwrite, CancellationToken token, out INTERRUZIONE intr, out string tmp)
 		{
 			bool ok = false;
 			intr = INTERRUZIONE.None;
 			StreamReader? sr = null;
 			List<string> lst = new List<string>();
 			string path, name, ext;
+			tmp = "";
 
 			try
 			{
@@ -891,35 +949,41 @@ namespace Syncf
 					}
 					sr.Close();
 
-					string tmp = path+name+TMP;
+					tmp = path + name + TMP;
 
 					lst = lst.Distinct().ToList();
 					File.WriteAllLines(tmp, lst);
-					File.Delete(file);
-					File.Move(tmp, file);
-					Log($"Eliminati duplicati in {file}", true);
+					
+					if(overwrite)
+					{
+						File.Delete(file);
+						File.Move(tmp, file);
+					}
+					Log($"Eliminati duplicati da {file}", true);
 					ok = true;
 				}
 			}
 			catch(Exception ex)
 			{
-				if(sr != null)
-				{
-					sr.Close();
-				}
-
 				if(ex is WorkingException)
 				{
-					par.fmsg($"Operazione interrotta", MSG.Warning);
+					par.fmsg($"Operazione interrotta durante la rimozione dei duplicati in '{file}'", MSG.Warning);
 					Log($"Interrotta rimozione duplicati in {file}", false);
 					intr = INTERRUZIONE.TOKEN;
 				}
 				else
 				{
 					par.fmsg($"Errore durante la rimozione dei duplicati in '{file}'\r\n{ex.Message.ToString()}", MSG.Error);
-					Log($"Errore durante la rimozione dei duplicati in {file}", false);
+					Log($"Errore durante la rimozione dei duplicati in '{file}'", false);
 					intr = INTERRUZIONE.ERR;
 				}
+			}
+			finally
+			{
+				if(sr != null)
+					{
+						sr.Close();
+					}
 			}
 			return ok;
 		}
@@ -991,16 +1055,20 @@ namespace Syncf
 			return ok;
 		}
 
+		/// <summary>
+		/// Rimuove i duplicati dal file todoF
+		/// </summary>
+		/// <param name="token"></param>
+		/// <returns></returns>
 		public bool RemoveTodoDuplicates(CancellationToken token)
 		{
 			bool ok = false;
 			INTERRUZIONE intr = INTERRUZIONE.None;
-
-			ok = RemoveDuplicatesFromTxtFile(TodoFile, token, out intr);
+			string tmp;
+			ok = RemoveDuplicatesFromTxtFile(TodoFile, true, token, out intr, out tmp);
 
 			return ok;
 		}
-
 
 		#warning DA COMPLETARE
 		/// <summary>
@@ -1011,27 +1079,154 @@ namespace Syncf
 		public bool WriteFile(CancellationToken token)
 		{
 			bool ok = false;
+			INTERRUZIONE intr = INTERRUZIONE.None;
+			
 
-			ok = RemoveTodoDuplicates(token);
+			Stack<string> todo;			// File di origine da copiare
+			List<string> miss;			// File di origine da copiare non trovati
+			List<filePair> done;		// File di origine e destinazione copiati + flag moved
+			List<string> old;			// File di origine più vecchi dei file di destinazione
 
-			for(int i = 0;i < 10;i++)       // Esegue le operazioni
+			string tmpFile;				// Crea file temporaneo con la lista
+			ok = RemoveDuplicatesFromTxtFile(TodoFile, false, token, out intr, out tmpFile);
+			
+			todo = new Stack<string>();		// Crea subito, per semplificare controlli successivi
+			miss = new List<string>();
+			done = new List<filePair>();
+			old = new List<string>();
+
+
+			if(ok)		// Legge tutti i file di todo.tmp e li aggiunge a todo. Se errore: esce dal ciclo.
 			{
-				if(token.IsCancellationRequested)
+				StreamReader? sr = null;
+				try
 				{
-					ok = false;
-					break;          // Esce dal ciclo for
-				}
-				else
-				{
-					par.fmsg('W'+i.ToString(),MSG.Message);
-					Thread.Sleep(500);
-					if(i == 9)
+					sr = new StreamReader(tmpFile);
+					string? f;
+					while ((f = sr.ReadLine()) != null)
 					{
-						par.fmsg("\r\n",MSG.Message);
-						ok = true;
+						Thread.Sleep(1);	// Per catturare il token
+						todo.Push(f);
+						if(token.IsCancellationRequested)
+						{
+							throw new WorkingException(INTERROTTO);
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					if(ex is WorkingException)
+					{
+						ok = false;
+						par.fmsg($"Operazione interrotta durante la lettura del file '{tmpFile}'", MSG.Warning);
+						Log($"Interrotta lettura del '{tmpFile}'", false);
+						intr = INTERRUZIONE.TOKEN;
+					}
+					else
+					{
+						ok = false;
+						par.fmsg($"Errore durante la lettura del file '{tmpFile}'\r\n{ex.Message.ToString()}", MSG.Error);
+						Log($"Errore durante la lettura del file '{tmpFile}'", false);
+						intr = INTERRUZIONE.ERR;
+					}
+				}
+				finally
+				{
+					if(sr != null)
+					{
+						sr.Close();
 					}
 				}
 			}
+			
+			if(ok)		// Estrae tutti i file di todo e lo copia nelle cartelle di destinazione
+			{
+				
+				while(todo.Count > 0)
+				{
+					string origFile = todo.Pop();		// Nome del file di origine
+					string destFile;
+					FileInfo origNfo, detNfo;
+					bool bWrite = false;
+					Thread.Sleep(1);					// Cattura eventuale token
+					if(token.IsCancellationRequested)
+					{
+						throw new WorkingException(INTERROTTO);
+					}
+					try
+					{
+						if(GetDestinationFileName(ref origFile, out destFile))
+						{
+							if(File.Exists(origFile))
+							{
+								origNfo = new FileInfo(origFile);
+								if(File.Exists(destFile))
+								{
+									detNfo = new FileInfo(origFile);
+									if(detNfo.LastWriteTime < origNfo.LastWriteTime)
+									{
+										bWrite = true;
+									}
+									else
+									{
+										old.Add(origFile);		// Il file di destinazione è più recente del file di origine
+									}
+								}
+								else
+								{
+									bWrite = true;
+								}
+								if(bWrite)
+								{
+									string path, name, ext;
+									if(DividePath(ref destFile, out path, out name, out ext))
+									{
+										Directory.CreateDirectory(path);
+										File.Copy(origFile, destFile);
+										if(cfg.delOrig)
+										{
+											File.Delete(origFile);
+										}
+										done.Add(new filePair(origFile, destFile, cfg.delOrig));	// Eseguita copia (o spostamento)
+									}
+									else
+									{
+										throw new Exception($"Errore nell'estrazione della cartella di '{destFile}'");
+									}
+								}
+							}
+							else
+							{
+								miss.Add(origFile);		// File di origine inesistente
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						if(ex is WorkingException)
+						{
+							todo.Clear();		// Interrompe tutte le operazioni, svuotando la lista
+							ok = false;
+							par.fmsg($"Operazione interrotta durante la copia del file '{origFile}'", MSG.Warning);
+							Log($"Interrotta copia del file '{origFile}'", false);
+							intr = INTERRUZIONE.TOKEN;
+						}
+						else
+						{						// Errore, ma continua il ciclo while
+							ok = false;
+							par.fmsg($"Errore durante la copia del file '{origFile}'\r\n{ex.Message.ToString()}", MSG.Error);
+							Log($"Errore durante la copia del file '{origFile}'", false);
+							intr = INTERRUZIONE.ERR;
+							continue;
+						}
+					}
+				}	// fine while(...)
+			}	// fine if(...)
+
+			#warning Anche se ok è false, salvare le liste miss, done, old (in Append)
+			#warning Esaminare se elementi rimasti nello stack todo e salvarli nel file todo (non temporaneo).
+			#warning Cancellare il file todo temporaneo.
+														
 			return ok;
 		}
 
@@ -1055,5 +1250,6 @@ namespace Syncf
 
 			return ok;
 		}
+
 	}
 }

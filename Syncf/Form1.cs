@@ -21,6 +21,8 @@ namespace Syncf
 		static CancellationTokenSource? cts = null;
 		CancellationToken token = CancellationToken.None;
 		List<Control> taskCtrl;
+		List<ToolStripMenuItem> taskMenuitem;
+
 		bool running = false;
 		bool closeRequest = false;
 
@@ -48,9 +50,7 @@ namespace Syncf
 			SuspendLayout();
 			par = new SyncfParams();
 
-			taskCtrl = new List<Control>();
-			taskCtrl.Add(gbComandi);
-			taskCtrl.Add(gbLog);
+			CrtlWithTask(out taskCtrl,out taskMenuitem);
 
 			arguments = args;
 			AnalyseArgs(arguments);
@@ -58,12 +58,48 @@ namespace Syncf
 			// Spostato sf = new SyncFile(par) in Form1_Load(), dopo creazione della finestra principale
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
-			this.MinimumSize = this.Size;
+			
 			this.Text = "Syncf";
 			btStop.Visible = true;
 			btStop.Enabled = false;
+
+			this.MinimumSize = this.Size;
+
+			panel1.MinimumSize = panel1.Size;
+			panel1.AutoSize = false;
+			panel1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+			
+			rtbMsg.MinimumSize = rtbMsg.Size;
+			rtbMsg.AutoSize = false;
+			//rtbMsg.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
 			ResumeLayout(false);
 			PerformLayout();
+		}
+
+		/// <summary>
+		/// Abilita o disabilita i controlli interessati dai task
+		/// </summary>
+		/// <param name="lc"></param>
+		/// <param name="lm"></param>
+		void CrtlWithTask(out List<Control> lc,out List<ToolStripMenuItem> lm)
+		{
+			List<Control> lstc = new List<Control>();
+			lstc.Add(gbComandi);
+			lstc.Add(gbLog);
+
+			List<ToolStripMenuItem> lstm = new List<ToolStripMenuItem>();
+			lstm.Add(leggiToolStripMenuItem);
+			lstm.Add(scriviToolStripMenuItem);
+			lstm.Add(leggiEScriviToolStripMenuItem);
+			lstm.Add(vediListaToolStripMenuItem);
+			lstm.Add(eliminaDuplicatiToolStripMenuItem);
+			lstm.Add(cancellaListaToolStripMenuItem);
+			lstm.Add(vediLogToolStripMenuItem);
+			lstm.Add(cancellaLogToolStripMenuItem);
+
+			lc = lstc;
+			lm = lstm;
 		}
 
 		/// <summary>
@@ -86,11 +122,16 @@ namespace Syncf
 			rtbMsg.AppendText(msg);          //MessageBox.Show(msg);
 			rtbMsg.SelectionLength = 0;      // Deseleziona
 
+#if DEBUG
+			eliminaDuplicatiToolStripMenuItem.Visible = true;
+#endif
 			refreshTimer.Interval = 300;
 			refreshTimer.Start();
 
 			ResumeLayout(false);
 			PerformLayout();
+
+			EnableTaskCtrls(sf.IsEnabled);
 
 			if(sf.IsEnabled)
 			{
@@ -182,7 +223,7 @@ namespace Syncf
 			cts = new CancellationTokenSource();
 			token = cts.Token;
 			btStop.Enabled = true;
-			EnableTaskCtrl(false);
+			EnableTaskCtrls(false);
 			Task<bool> task = Task<bool>.Factory.StartNew(() => Esegui(f,token,cts),token);
 			task.ContinueWith(AfterTask);
 		}
@@ -191,9 +232,13 @@ namespace Syncf
 		/// Abilita o disabilita un controllo sul Form
 		/// </summary>
 		/// <param name="enabled"></param>
-		void EnableTaskCtrl(bool enabled)
+		void EnableTaskCtrls(bool enabled)
 		{
 			foreach(Control c in taskCtrl)
+			{
+				c.Enabled = enabled;
+			}
+			foreach(ToolStripMenuItem c in taskMenuitem)
 			{
 				c.Enabled = enabled;
 			}
@@ -220,7 +265,7 @@ namespace Syncf
 			}
 
 			rtbMsg.BeginInvoke(new Action(() => AddMessage(msg,MSG.Warning,1)));
-			this.BeginInvoke(new Action(() => EnableTaskCtrl(true)));
+			this.BeginInvoke(new Action(() => EnableTaskCtrls(true)));
 
 			if(closeRequest)
 			{
@@ -525,9 +570,10 @@ namespace Syncf
 		{
 			if(!running)
 			{
-				if(File.Exists(sf.TodoFile))
+				string s = sf.TodoFile;
+				if(File.Exists(s))
 				{
-					if(sf.GetExt(sf.TodoFile) == ".txt")
+					if(sf.GetExt(in s) == ".txt")
 					{
 						Process.Start("explorer.exe",sf.TodoFile);
 					}
@@ -577,20 +623,31 @@ namespace Syncf
 			}
 		}
 
-		#endregion
-
 		private void vediLogToolStripMenuItem_Click(object sender,EventArgs e)
 		{
 			if(!running)
 			{
-				if(File.Exists(sf.LogFile))
+				string s = sf.LogFile;
+				if(File.Exists(s))
 				{
-					if(sf.GetExt(sf.LogFile) == ".txt")
+					if(sf.GetExt(in s) == ".txt")
 					{
 						Process.Start("explorer.exe",sf.LogFile);
 					}
 				}
 			}
+		}
+
+		#endregion
+
+		private void Form1_ResizeEnd(object sender,EventArgs e)
+		{
+			//sf.Log("Resized");
+			int dx = this.Size.Width - this.MinimumSize.Width;
+			int dy = this.Size.Height - this.MinimumSize.Height;
+			Size incsz = new Size(dx, dy);
+			panel1.Size = panel1.MinimumSize + incsz;
+			rtbMsg.Size = rtbMsg.MinimumSize + incsz;
 		}
 	}
 }
