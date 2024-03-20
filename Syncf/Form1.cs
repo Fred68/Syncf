@@ -307,6 +307,9 @@ namespace Syncf
 		/// <returns></returns>
 		bool AnalyseArgs(string[] args)
 		{
+
+			#warning Completare con -noWrite e aggiungere a par.noWrite, solo se true
+
 			bool ok = true;
 			CMD cmd = CMD.None;
 			for(int i = 0;i < args.Length;i++)

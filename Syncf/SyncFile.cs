@@ -6,13 +6,13 @@ using System.Linq;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 using System.IO;
 
 using Fred68.CfgReader;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using Microsoft.VisualBasic.ApplicationServices;
+using System.Drawing.Interop;
+
 
 namespace Syncf
 {
@@ -50,6 +50,11 @@ namespace Syncf
 				orig = origin;
 				dest = destination;
 				move = removeOrig;
+			}
+			public override string ToString()
+			{
+				string s = move ? " -> spostato" : "";
+				return $"{orig}; {dest};{s}";
 			}
 		}
 
@@ -122,6 +127,30 @@ namespace Syncf
 		{
 			get { return cfg.logPath + cfg.todoF; }
 		}
+
+		/// <summary>
+		/// File da copiare non trovati
+		/// </summary>
+		public string MissFile
+		{
+			get { return cfg.logPath + cfg.missF; }
+		}
+
+		/// <summary>
+		/// File da copiare non copiati perché con modifiche meno recenti della destinazione
+		/// </summary>
+		public string OldFile
+		{
+			get { return cfg.logPath + cfg.oldF; }
+		}
+
+		/// <summary>
+		/// File copiati (origine; destinazione; flag)
+		/// </summary>
+		public string DoneFile
+		{
+			get { return cfg.logPath + cfg.doneF; }
+		}
 		#endregion
 
 		/// <summary>
@@ -130,21 +159,19 @@ namespace Syncf
 		/// </summary>	
 		public SyncFile(SyncfParams p)
 		{
-			cfg = new CfgReader();
+			cfg = new CfgReader();			// Attenzione a cfg.CHR_Ammessi
 			par = new SyncfParams();
-
+			
 			par.cfgFile = STD_CFG;
 			par.fmsg = p.fmsg;
-			
-			#if DEBUG
-			//MessageBox.Show(cfg.CHR_Ammessi);
-			#endif
-
 			par.usrName = stdUserName = par.lstFile = string.Empty;
-
 			par.fls = p.fls;
+
 			if(p.cfgFile.Length > 2)	par.cfgFile = p.cfgFile;
 			cfg.ReadConfiguration(par.cfgFile);
+			
+			#warning Impostare cfg.noWrite in base al valore letto e a par.noWrite degli argomenti
+
 			stdUserName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name ?
 			if(p.usrName.Length > 1)
 			{
@@ -203,7 +230,7 @@ namespace Syncf
 				}
 			}
 
-			Log("Avvio programma",false);
+			Log("Avvio programma", false);
 		}
 		
 		/// <summary>
@@ -274,10 +301,11 @@ namespace Syncf
 				lsTmp = cfg.matchNo ;
 				sTmp = cfg.logPath;
 				iTmp = cfg.maxDepth;
-				sTmp = cfg.redoF;	
+				sTmp = cfg.oldF;	
 				bTmp = cfg.clearLst;
 				bTmp = cfg.delOrig;
 				sTmp = cfg.missF;
+				bTmp = cfg.noWrite;
 
 				if(txtCol.Length != (int)MSG.None)	throw new Exception("Color[] txtCol and enum MSG hanno lunghezze differenti");
 
@@ -903,6 +931,8 @@ namespace Syncf
 
 		#warning Nota: per cartelle multiple, usare file .cfg distinti.
 		#warning Aggiungere Log() nei punti significativi
+		#warning Svuotare file .lst. se richiesto
+		#warning Argomento ed opzione nowrite: wsegue tutto, ma senza scrivere i file di destinazione
 	
 		///// <summary>
 		///// Rimuove le righe duplicate in file
@@ -916,7 +946,7 @@ namespace Syncf
 		/// <summary>
 		/// Rimuove le righe duplicate in file
 		/// Sovrascrive il file originario, se richiesto...
-		/// ...oppure crea file temporaneo (e mette il nome in file)
+		/// ...oppure crea file temporaneo (e mette il nome in tmp)
 		/// </summary>
 		/// <param name="file"></param>
 		/// <param name="overwrite">sovrascrive 'file', se false crea</param>
@@ -1080,23 +1110,25 @@ namespace Syncf
 		{
 			bool ok = false;
 			INTERRUZIONE intr = INTERRUZIONE.None;
-			
 
 			Stack<string> todo;			// File di origine da copiare
 			List<string> miss;			// File di origine da copiare non trovati
 			List<filePair> done;		// File di origine e destinazione copiati + flag moved
 			List<string> old;			// File di origine più vecchi dei file di destinazione
+			List<string> skp;			// File di todo non copiati
+			string tmpFile;				// File temporaneo con la lista
 
-			string tmpFile;				// Crea file temporaneo con la lista
-			ok = RemoveDuplicatesFromTxtFile(TodoFile, false, token, out intr, out tmpFile);
 			
-			todo = new Stack<string>();		// Crea subito, per semplificare controlli successivi
+			todo = new Stack<string>();
 			miss = new List<string>();
 			done = new List<filePair>();
 			old = new List<string>();
+			skp = new List<string>();
+
+			ok = RemoveDuplicatesFromTxtFile(TodoFile, false, token, out intr, out tmpFile);	// Copia Todofile in tmpFile, rimuovendo i duplicati
 
 
-			if(ok)		// Legge tutti i file di todo.tmp e li aggiunge a todo. Se errore: esce dal ciclo.
+			if(ok)		// Legge tutti i file di todo.tmp e li aggiunge allo stack todo. Se errore: esce dal ciclo.
 			{
 				StreamReader? sr = null;
 				try
@@ -1135,6 +1167,10 @@ namespace Syncf
 					if(sr != null)
 					{
 						sr.Close();
+					}
+					if(!ok)
+					{
+						todo.Clear();	// Se la lettura non è stata completata, il file todo originario resta invariato
 					}
 				}
 			}
@@ -1181,13 +1217,14 @@ namespace Syncf
 									string path, name, ext;
 									if(DividePath(ref destFile, out path, out name, out ext))
 									{
+										#warning Non eseguire alcuna scrittura sul path di destinazione se cfg.noWrite è true, nè cancellare origFile.
 										Directory.CreateDirectory(path);
 										File.Copy(origFile, destFile);
 										if(cfg.delOrig)
 										{
 											File.Delete(origFile);
 										}
-										done.Add(new filePair(origFile, destFile, cfg.delOrig));	// Eseguita copia (o spostamento)
+										done.Add(new filePair(origFile, destFile, cfg.delOrig));
 									}
 									else
 									{
@@ -1203,16 +1240,17 @@ namespace Syncf
 					}
 					catch (Exception ex)
 					{
+						skp.Add(origFile);				// Aggiunge il file attuale, non copiato, alla lista
 						if(ex is WorkingException)
 						{
-							todo.Clear();		// Interrompe tutte le operazioni, svuotando la lista
+							todo.Clear();				// Interrompe tutte le operazioni, svuotando la lista
 							ok = false;
 							par.fmsg($"Operazione interrotta durante la copia del file '{origFile}'", MSG.Warning);
 							Log($"Interrotta copia del file '{origFile}'", false);
 							intr = INTERRUZIONE.TOKEN;
 						}
 						else
-						{						// Errore, ma continua il ciclo while
+						{								// Errore, ma continua il ciclo while
 							ok = false;
 							par.fmsg($"Errore durante la copia del file '{origFile}'\r\n{ex.Message.ToString()}", MSG.Error);
 							Log($"Errore durante la copia del file '{origFile}'", false);
@@ -1220,17 +1258,79 @@ namespace Syncf
 							continue;
 						}
 					}
-				}	// fine while(...)
-			}	// fine if(...)
+				}   // fine while(...)
+			}   // fine if(...)
 
-			#warning Anche se ok è false, salvare le liste miss, done, old (in Append)
-			#warning Esaminare se elementi rimasti nello stack todo e salvarli nel file todo (non temporaneo).
-			#warning Cancellare il file todo temporaneo.
-														
+			skp.AddRange(todo);				// File la cui copia non è stata eseguita (errore o interruzione)
+
+			try								// Aggiorna i file con le liste, anche se c'é stato un errore
+			{
+				WriteListToFile<string>(miss, MissFile, true);	
+				WriteListToFile<string>(old, OldFile, true);
+				WriteListToFile<filePair>(done, DoneFile, true);
+
+				if(skp.Count > 0)			// Se ci sono elementi non copiati, li sovrascrive alla lista originaria
+				{
+					WriteListToFile<string>(skp, TodoFile, false);	
+				}
+
+				if(File.Exists(tmpFile))
+				{
+					File.Delete(tmpFile);
+				}
+				
+			}
+			catch (Exception ex)
+			{
+				par.fmsg($"Errore durante l'aggiornamento delle liste'\r\n{ex.Message.ToString()}", MSG.Error);
+				Log($"Errore durante l'aggiornamento delle liste", false);
+			}
+
+			switch(intr)
+			{
+				case INTERRUZIONE.ERR:
+				{
+					Log("Errore durante la copia dei file");
+				}
+				break;
+				case INTERRUZIONE.TOKEN:
+				{
+					Log("Copia dei file interrotta");
+				}
+				break;
+				default:
+				{
+					if(ok)	Log("Copia dei file completata");
+				}
+				break;
+			}
+
 			return ok;
 		}
 
-		#warning DA COMPLETARE
+		bool WriteListToFile<T>(List<T> list, string file, bool append)
+		{
+			bool ok = true;
+			StreamWriter? sw = null;
+			
+			try
+			{
+				sw = new StreamWriter(file, append);	// Append
+				foreach(T el in list)
+				{
+					sw.WriteLine(el.ToString());
+				}
+			}
+			catch (Exception ex)
+			{
+				par.fmsg($"Errore durante scritture del file '{file}'\r\n{ex.Message.ToString()}", MSG.Error);
+				Log($"Errore durante scritture del file '{file}", false);	
+				ok = false;
+			}
+			return ok;
+		}
+
+		#warning DA CONTROLLARE
 		/// <summary>
 		/// DA COMPLETARE
 		/// </summary>
