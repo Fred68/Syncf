@@ -30,7 +30,7 @@ namespace Syncf
 		public string cfgFile;			// File di configurazione
 		public string lstFile;			// Nome (senza estensione) del fine con la lista
 		public FLS fls;					// Liste da utilizzate
-		public bool noFilterLst;		// Non applica i filtri alle lste
+		public bool filterLst;			// Applica i filtri alle liste
 		public bool noWrite;			// Non scrive i file di destinazione
 
 		public SyncfParams()
@@ -38,16 +38,16 @@ namespace Syncf
 			this.fmsg = (string s,MSG t,int n) => {};	// Delegate che non fa nulla
 			this.usrName = this.cfgFile	= cfgFile = this.lstFile = string.Empty;
 			this.fls = FLS.None;
-			this.noFilterLst = this.noWrite = false;
+			this.filterLst = this.noWrite = false;
 		}
-		public SyncfParams(FuncMsg f,string usrName, string cfgFile, string lstFile, FLS fls, bool noFilterLst, bool noWrite)
+		public SyncfParams(FuncMsg f,string usrName, string cfgFile, string lstFile, FLS fls, bool filterLst, bool noWrite)
 		{
 			this.fmsg		= f;
 			this.usrName	= usrName;
 			this.cfgFile	= cfgFile;
 			this.lstFile	= lstFile;
 			this.fls		= fls;
-			this.noFilterLst = noFilterLst;
+			this.filterLst = filterLst;
 			this.noWrite = noWrite;
 		}
 	}

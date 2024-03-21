@@ -13,7 +13,6 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Drawing.Interop;
 
-
 namespace Syncf
 {
 
@@ -157,42 +156,25 @@ namespace Syncf
 		/// Ctor
 		/// Apre subito il file di log
 		/// </summary>	
-		public SyncFile(SyncfParams p)
+		public SyncFile(ref SyncfParams p)
 		{
-			cfg = new CfgReader();			// Attenzione a cfg.CHR_Ammessi
-			par = new SyncfParams();
 			
-			par.cfgFile = STD_CFG;
-			par.fmsg = p.fmsg;
-			par.usrName = stdUserName = par.lstFile = string.Empty;
-			par.fls = p.fls;
+			cfg = new CfgReader();					// Attenzione a cfg.CHR_Ammessi
+			par = p;
 
-			if(p.cfgFile.Length > 2)	par.cfgFile = p.cfgFile;
+			stdUserName = Environment.UserName;		// System.Security.Principal.WindowsIdentity.GetCurrent().Name ?
+
+			if(par.cfgFile.Length == 0)		{par.cfgFile = STD_CFG;}
+			if(par.usrName.Length == 0)		{par.usrName = stdUserName;}
+			if(par.fls != FLS.LST)			{par.lstFile = string.Empty;}
+			if(par.fls == FLS.None)			{par.lstFile = par.usrName; par.fls = FLS.LST;}
+
 			cfg.ReadConfiguration(par.cfgFile);
 			
-			#warning Impostare cfg.noWrite in base al valore letto e a par.noWrite degli argomenti
-
-			stdUserName = Environment.UserName;			// System.Security.Principal.WindowsIdentity.GetCurrent().Name ?
-			if(p.usrName.Length > 1)
-			{
-				par.usrName = p.usrName;
-			}
-			else
-			{
-				par.usrName = stdUserName;
-			}
-			
-			if(par.fls == FLS.LST)
-			{
-				par.lstFile = p.lstFile;
-			}
-			else if(par.fls == FLS.None)				// Se non è specificato alcun file di lista...
-			{
-				par.lstFile = par.usrName;				// ...usa lo username
-				par.fls = FLS.LST;
-			}
-			
 			enabled = CheckCfg();
+
+			if(par.filterLst)				{cfg.filterlst = true;}
+			if(par.noWrite)					{cfg.noWrite = true;}	
 
 			if(enabled)		enabled = LockBusy();
 			if(enabled)		enabled = OpenLog();
@@ -306,6 +288,9 @@ namespace Syncf
 				bTmp = cfg.delOrig;
 				sTmp = cfg.missF;
 				bTmp = cfg.noWrite;
+				bTmp = cfg.filterlst;
+
+
 
 				if(txtCol.Length != (int)MSG.None)	throw new Exception("Color[] txtCol and enum MSG hanno lunghezze differenti");
 
@@ -824,7 +809,18 @@ namespace Syncf
 			try
 			{
 				foreach(string file in listFiles)
-				{				
+				{
+
+					#warning Applicare filtri se cfr.filterList è true
+
+					//if(FilterExt(in lFile))
+					//{
+					//	if(FilterMatch(in lFile))
+					//	{
+					//		lst.Add(lFile);
+					//	}
+					//}
+
 					if(File.Exists(file))
 					{
 						string? f;
@@ -932,7 +928,6 @@ namespace Syncf
 		#warning Nota: per cartelle multiple, usare file .cfg distinti.
 		#warning Aggiungere Log() nei punti significativi
 		#warning Svuotare file .lst. se richiesto
-		#warning Argomento ed opzione nowrite: wsegue tutto, ma senza scrivere i file di destinazione
 	
 		///// <summary>
 		///// Rimuove le righe duplicate in file
@@ -1218,6 +1213,7 @@ namespace Syncf
 									if(DividePath(ref destFile, out path, out name, out ext))
 									{
 										#warning Non eseguire alcuna scrittura sul path di destinazione se cfg.noWrite è true, nè cancellare origFile.
+
 										Directory.CreateDirectory(path);
 										File.Copy(origFile, destFile);
 										if(cfg.delOrig)

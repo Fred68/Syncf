@@ -34,7 +34,8 @@ namespace Syncf
 		const string CMD_CFG = "-cfg";
 		const string CMD_LST = "-lst";
 		const string CMD_ALL = "-all";
-		const string CMD_NFL = "-lstnofilter";
+		const string CMD_FLS = "-filterlst";
+		const string CMD_NWR = "-noWrite";
 
 		enum CMD { USR, CFG, LST, ALL, None };
 
@@ -53,9 +54,10 @@ namespace Syncf
 			CrtlWithTask(out taskCtrl,out taskMenuitem);
 
 			arguments = args;
-			AnalyseArgs(arguments);
+			AnalyseArgs(arguments, ref par);
 			par.fmsg = AddMessageAltTask;
 			// Spostato sf = new SyncFile(par) in Form1_Load(), dopo creazione della finestra principale
+
 			statusStrip1.MinimumSize = new System.Drawing.Size(0,30);
 			toolStripStatusLabel1.Text = new string('-',80);
 			
@@ -110,7 +112,7 @@ namespace Syncf
 		private void Form1_Load(object sender,EventArgs e)
 		{
 			SuspendLayout();
-			sf = new SyncFile(par);
+			sf = new SyncFile(ref par);
 			rtbMsg.AppendText("\r\n");
 			rtbMsg.AppendText("args[]=");
 			for(int i = 1;i < arguments.Length;i++)
@@ -304,12 +306,10 @@ namespace Syncf
 		/// Interpreta gli argomenti della chiamata
 		/// </summary>
 		/// <param name="args"></param>
+		/// <param name="par"></param>
 		/// <returns></returns>
-		bool AnalyseArgs(string[] args)
+		bool AnalyseArgs(string[] args, ref SyncfParams par)
 		{
-
-			#warning Completare con -noWrite e aggiungere a par.noWrite, solo se true
-
 			bool ok = true;
 			CMD cmd = CMD.None;
 			for(int i = 0;i < args.Length;i++)
@@ -339,12 +339,19 @@ namespace Syncf
 							cmd = CMD.None;
 						}
 						break;
-					case CMD_NFL:
+					case CMD_FLS:
 						{
-							par.noFilterLst = true;
+							par.filterLst = true;
 							cmd = CMD.None;
 						}
 						break;
+					case CMD_NWR:
+						{
+							par.noWrite = true;
+							cmd = CMD.None;
+						}
+						break;
+
 					default:
 						{
 							switch(cmd)
