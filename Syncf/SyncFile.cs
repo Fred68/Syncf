@@ -11,7 +11,7 @@ using System.IO;
 using Fred68.CfgReader;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using System.Drawing.Interop;
+//using System.Drawing.Interop;
 
 namespace Syncf
 {
@@ -173,7 +173,7 @@ namespace Syncf
 			
 			enabled = CheckCfg();
 
-			if(par.filterLst)				{cfg.filterlst = true;}
+			if(par.filterLst)				{cfg.filterLst = true;}
 			if(par.noWrite)					{cfg.noWrite = true;}	
 
 			if(enabled)		enabled = LockBusy();
@@ -288,7 +288,7 @@ namespace Syncf
 				bTmp = cfg.delOrig;
 				sTmp = cfg.missF;
 				bTmp = cfg.noWrite;
-				bTmp = cfg.filterlst;
+				bTmp = cfg.filterLst;
 
 
 
@@ -599,6 +599,7 @@ namespace Syncf
 				{
 					int iPath;
 					iPath = int.Max(fullpath.LastIndexOf('/'),fullpath.LastIndexOf('\\'));		// Inizio del nome del file
+					//iPath = Math.Max(fullpath.LastIndexOf('/'),fullpath.LastIndexOf('\\'));		// Inizio del nome del file
 					ext = GetExt(in fullpath);
 					if(iPath != -1)
 					{
@@ -810,18 +811,21 @@ namespace Syncf
 			{
 				foreach(string file in listFiles)
 				{
+					bool skip = false;
 
-					#warning Applicare filtri se cfr.filterList è true
-
-					//if(FilterExt(in lFile))
-					//{
-					//	if(FilterMatch(in lFile))
-					//	{
-					//		lst.Add(lFile);
-					//	}
-					//}
-
-					if(File.Exists(file))
+					if(cfg.filterLst)
+					{
+						skip = true;
+						if(FilterExt(in file))
+						{
+							if(FilterMatch(in file))
+							{
+								skip = false;
+							}
+						}
+					}
+				
+					if((!skip) && File.Exists(file))
 					{
 						string? f;
 						sr = new StreamReader(file);
@@ -926,8 +930,14 @@ namespace Syncf
 		}
 
 		#warning Nota: per cartelle multiple, usare file .cfg distinti.
+		#warning Svuotare file .lst (solo dell'utente), se richiesto [IN FUTURO]
+		#warning Aggiungere data e ora in CfgReader
+		#warning Aggiungere scelta lettura file in base a data e ora (modifca/creazione, antecedente, successivo, compresp) [IN FUTURO]
+		#warning Aggiungere per tipo di file (liste estensioni precompilate)
+
 		#warning Aggiungere Log() nei punti significativi
-		#warning Svuotare file .lst. se richiesto
+		#warning FARE TEST COMPLETI !!!
+		#warning ATTENZIONE, ECCEZIONE NON GESTITA SE ERRORE NEL FILE -cfg
 	
 		///// <summary>
 		///// Rimuove le righe duplicate in file
@@ -1212,13 +1222,14 @@ namespace Syncf
 									string path, name, ext;
 									if(DividePath(ref destFile, out path, out name, out ext))
 									{
-										#warning Non eseguire alcuna scrittura sul path di destinazione se cfg.noWrite è true, nè cancellare origFile.
-
-										Directory.CreateDirectory(path);
-										File.Copy(origFile, destFile);
-										if(cfg.delOrig)
+										if(!cfg.noWrite)	// Se cfg.noWrite è true, non esegue alcuna operazione di scrittura
 										{
-											File.Delete(origFile);
+											Directory.CreateDirectory(path);
+											File.Copy(origFile, destFile);
+											if(cfg.delOrig)
+											{
+												File.Delete(origFile);
+											}
 										}
 										done.Add(new filePair(origFile, destFile, cfg.delOrig));
 									}

@@ -34,7 +34,7 @@ namespace Syncf
 		const string CMD_CFG = "-cfg";
 		const string CMD_LST = "-lst";
 		const string CMD_ALL = "-all";
-		const string CMD_FLS = "-filterlst";
+		const string CMD_FLS = "-filterLst";
 		const string CMD_NWR = "-noWrite";
 
 		enum CMD { USR, CFG, LST, ALL, None };
