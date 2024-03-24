@@ -87,18 +87,20 @@ namespace Syncf
 				sb.AppendLine($"User: {par.usrName} [{stdUserName}]");
 				sb.AppendLine(msgReadText);
 
-				if(cfg.extYes.Count == 0)
+				if(enabled)
 				{
-					sb.AppendLine("Nessuna estensione da includere");
-				}
-				if(cfg.extNo.Count == 0)
-				{
-					sb.AppendLine("Nessuna estensione da escludere");
+					if(cfg.extYes.Count == 0)
+					{
+						sb.AppendLine("Nessuna estensione da includere");
+					}
+					if(cfg.extNo.Count == 0)
+					{
+						sb.AppendLine("Nessuna estensione da escludere");
+					}
 				}
 
 				sb.AppendLine(cfg.ToString());
 				sb.AppendLine(cfg.DumpEntries());
-				
 				return sb.ToString();
 			}
 		}
@@ -310,7 +312,7 @@ namespace Syncf
 			catch(Exception ex)
 			{
 				ok = false;
-				MessageBox.Show($"Errore nella configurazione\r\n{ex.Message.ToString()}");
+				MessageBox.Show($"Errore nella configurazione\r\n{ex.Message}");
 			}
 
 			// Controlla esistenza della cartella di log
@@ -687,6 +689,12 @@ namespace Syncf
 			return yes;
 		}
 
+		/// <summary>
+		/// Compone il nome di destinazione
+		/// </summary>
+		/// <param name="fullpath"></param>
+		/// <param name="destPath"></param>
+		/// <returns></returns>
 		bool GetDestinationFileName(ref readonly string fullpath, out String destPath)
 		{
 			bool ok = false;	
@@ -930,14 +938,13 @@ namespace Syncf
 		}
 
 		#warning Nota: per cartelle multiple, usare file .cfg distinti.
-		#warning Svuotare file .lst (solo dell'utente), se richiesto [IN FUTURO]
-		#warning Aggiungere data e ora in CfgReader
-		#warning Aggiungere scelta lettura file in base a data e ora (modifca/creazione, antecedente, successivo, compresp) [IN FUTURO]
-		#warning Aggiungere per tipo di file (liste estensioni precompilate)
+		#warning [IN FUTURO] Svuotare file .lst (solo dell'utente), se richiesto
+		#warning [IN FUTURO] Aggiungere data e ora in CfgReader
+		#warning [IN FUTURO] Lettura file in base a data e ora (modifca/creazione, antecedente, successivo, compreso) 
+		#warning [IN FUTURO] Aggiungere liste con tipi di file (precompilate, per es. Immagini...)
 
-		#warning Aggiungere Log() nei punti significativi
+		#warning Aggiungere Log() nei punti significativi !!!
 		#warning FARE TEST COMPLETI !!!
-		#warning ATTENZIONE, ECCEZIONE NON GESTITA SE ERRORE NEL FILE -cfg
 	
 		///// <summary>
 		///// Rimuove le righe duplicate in file
@@ -1132,7 +1139,6 @@ namespace Syncf
 
 			ok = RemoveDuplicatesFromTxtFile(TodoFile, false, token, out intr, out tmpFile);	// Copia Todofile in tmpFile, rimuovendo i duplicati
 
-
 			if(ok)		// Legge tutti i file di todo.tmp e li aggiunge allo stack todo. Se errore: esce dal ciclo.
 			{
 				StreamReader? sr = null;
@@ -1177,6 +1183,7 @@ namespace Syncf
 					{
 						todo.Clear();	// Se la lettura non è stata completata, il file todo originario resta invariato
 					}
+					Log($"{todo.Count} file da copiare");
 				}
 			}
 			
@@ -1235,7 +1242,10 @@ namespace Syncf
 									}
 									else
 									{
-										throw new Exception($"Errore nell'estrazione della cartella di '{destFile}'");
+										string s = $"Errore nell'estrazione della cartella di '{destFile}'";
+										par.fmsg(s, MSG.Error);
+										Log(s, false);
+										throw new Exception(s);
 									}
 								}
 							}
@@ -1243,6 +1253,12 @@ namespace Syncf
 							{
 								miss.Add(origFile);		// File di origine inesistente
 							}
+						}
+						else
+						{
+							string s = $"Fallita composizione del nome di destinazione da {origFile}";
+							par.fmsg(s, MSG.Error);
+							Log(s, false);
 						}
 					}
 					catch (Exception ex)
@@ -1268,6 +1284,11 @@ namespace Syncf
 				}   // fine while(...)
 			}   // fine if(...)
 
+			if(todo.Count > 0)
+			{
+				Log($"{todo.Count} file non copiati", true);
+			}
+			
 			skp.AddRange(todo);				// File la cui copia non è stata eseguita (errore o interruzione)
 
 			try								// Aggiorna i file con le liste, anche se c'é stato un errore
@@ -1333,6 +1354,13 @@ namespace Syncf
 				par.fmsg($"Errore durante scritture del file '{file}'\r\n{ex.Message.ToString()}", MSG.Error);
 				Log($"Errore durante scritture del file '{file}", false);	
 				ok = false;
+			}
+			finally
+			{
+				if(sw != null)
+				{
+					sw.Close();
+				}
 			}
 			return ok;
 		}
