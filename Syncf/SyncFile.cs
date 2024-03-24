@@ -893,7 +893,9 @@ namespace Syncf
 				while(folders.Count > 0)
 				{
 					Tuple<string,int> foldDpt = folders.Pop();
+					#if DEBUG
 					Log($"Lettura cartella: {foldDpt.Item1}",true);
+					#endif
 					string[] lFiles = Directory.GetFiles(foldDpt.Item1);
 					string[] lFolders = Directory.GetDirectories(foldDpt.Item1);
 					if(foldDpt.Item2 <= cfg.maxDepth)
@@ -1210,7 +1212,8 @@ namespace Syncf
 								origNfo = new FileInfo(origFile);
 								if(File.Exists(destFile))
 								{
-									detNfo = new FileInfo(origFile);
+									detNfo = new FileInfo(destFile);
+									Log($"{origFile} last write time: {origNfo.LastWriteTime} - dest: {detNfo.LastWriteTime}",true);
 									if(detNfo.LastWriteTime < origNfo.LastWriteTime)
 									{
 										bWrite = true;
@@ -1232,13 +1235,14 @@ namespace Syncf
 										if(!cfg.noWrite)	// Se cfg.noWrite è true, non esegue alcuna operazione di scrittura
 										{
 											Directory.CreateDirectory(path);
-											File.Copy(origFile, destFile);
+											File.Copy(origFile, destFile, true);	// Overwrite
 											if(cfg.delOrig)
 											{
 												File.Delete(origFile);
 											}
+											done.Add(new filePair(origFile, destFile, cfg.delOrig));
 										}
-										done.Add(new filePair(origFile, destFile, cfg.delOrig));
+										//done.Add(new filePair(origFile, destFile, cfg.delOrig));
 									}
 									else
 									{
